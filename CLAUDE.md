@@ -77,3 +77,10 @@ Lightweight QA companion — 5-category lite checks during development.
 2. Run `tests/eval-triggers.md` mentally — would any trigger behavior change?
 3. Update `tests/eval-quality.md` if grading criteria changed.
 4. Verify against the skill's pattern: for self-contained skills, could Claude execute the full process without reading ANY reference file? For routers, does every step in SKILL.md still point to a real reference file?
+
+## Banyan membership (2026-07-06)
+
+This project is a venture of **Banyan** — the multi-venture tree at `~/Claude/Projects/banyan`. Its passport is `VENTURE.md`. It moved here from `~/Claude/Projects/nonlu-skill` on 2026-07-06 (directed: "pull in the next project called nonlu-skill as the new venture here").
+Banyan skills (seed/graft/dream/status) live at `~/Claude/Projects/banyan/skills/<name>/SKILL.md` — Read and follow one when a task calls for it. Tree law: `~/Claude/Projects/banyan/brain/00-TREE.md`. Venture type: `skill-library` (no playbook yet — this venture is the type's source of truth). On any conflict between this file and Banyan's constitution (`~/Claude/Projects/banyan/CLAUDE.md`), Banyan's constitution wins.
+
+@~/Claude/Projects/banyan/memory/GLOBAL-LESSONS.md
