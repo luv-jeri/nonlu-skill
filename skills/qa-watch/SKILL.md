@@ -305,3 +305,10 @@ If you catch yourself thinking any of these, STOP:
 | "I already checked this with code analysis" | If preview is available, verify visually too |
 | "The context budget is just a guideline" | Hard stop at 1500 lines. Suggest narrower scope. |
 | "This finding doesn't need a location" | Every finding needs file:line or DOM element |
+
+## Learning capture
+
+When this skill errs, misfires, or the user corrects it: append a dated entry to
+`LEARNINGS.md` in this skill's folder (what happened · expected vs actual ·
+root-cause guess · context). Do NOT edit this SKILL.md mid-task. To absorb
+learnings into the skill, run `/skill-evolve <skill-name>`.

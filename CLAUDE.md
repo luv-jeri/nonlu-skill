@@ -6,12 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
-This is a Claude Code plugin / Agent Skills package. No application code — only markdown skill files, JSON metadata, and documentation. Four skills ship: `boost`, `pixel`, `qa-shield`, `qa-watch`.
+This is a Claude Code plugin / Agent Skills package. No application code — only markdown skill files, JSON metadata, and documentation. Six skills ship: `boost`, `pixel`, `qa-shield`, `qa-watch`, `skill-smith`, `skill-evolve`.
 
 ## Key Rules
 
 - Each skill lives in `skills/<name>/` with a `SKILL.md`, plus optional `references/`, `examples/`, `patterns/`, and `tests/`.
-- SKILL.md frontmatter needs three fields: `name`, `description`, and `user-invokable: true` (all four skills are slash-command invoked).
+- SKILL.md frontmatter needs three fields: `name`, `description`, and `user-invokable: true` (all six skills are slash-command invoked).
+- Every skill ships with a `LEARNINGS.md` (dated mistake log, appended the moment the skill errs) and a "Learning capture" footer in SKILL.md — `/skill-evolve` absorbs entries into skill edits with human approval. New skills get this wired by `/skill-smith` automatically (its iron law 5).
 - Description field = ONLY trigger conditions ("Use when user invokes /x"), NEVER a process summary. This is the string Claude matches on to fire the skill (Claude Search Optimization); a description that summarizes the process instead of the trigger mis-fires.
 - Each skill MUST create a TodoWrite checklist at start for step tracking.
 - Each skill has its own `tests/eval-triggers.md` (does it fire on the right prompts?) and `tests/eval-quality.md` (output grading rubric).
@@ -69,6 +70,21 @@ Lightweight QA companion — 5-category lite checks during development.
 - `SKILL.md` — complete self-contained skill (process, iron laws, lite checklist, session mode)
 - `references/lite-checklist.md` — detailed checks for the 5 lite categories
 - `examples/sample-watch-output.md` — example mid-build watch output
+- `tests/` — eval framework
+
+### Skill Smith (`skills/skill-smith/`) — self-contained pattern
+Tiered skill creator — T1 quick / T2 standard / T3 hardened; description linter; wires evolution into every skill it creates.
+
+- `SKILL.md` — complete self-contained skill (iron laws, tier table, 8-step process, description lint, red flags)
+- `references/templates.md` — generated-skill skeletons, LEARNINGS.md template, learning-capture footer, tests skeletons
+- `LEARNINGS.md` — its own mistake log
+- `tests/` — eval framework
+
+### Skill Evolve (`skills/skill-evolve/`) — self-contained pattern
+Capture skill mistakes instantly; upgrade skills via classified evidence + approved diff (never silent self-editing).
+
+- `SKILL.md` — complete self-contained skill (capture/evolve modes, classification table, deletion sweep, red flags)
+- `LEARNINGS.md` — its own mistake log (it evolves itself through the same gate)
 - `tests/` — eval framework
 
 ## Making Changes

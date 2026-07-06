@@ -40,11 +40,20 @@ Read these files if they exist. Skip silently if missing.
 - Test framework (e.g., "vitest", "jest", "pytest")
 - Build tool (e.g., "vite", "webpack", "turbopack")
 
+**Content workspace detection (when no code manifests exist):**
+- Style guides / brand docs: `STYLE*.md`, `BRAND*.md`, `*style-guide*`, `brand/`
+- Briefs & specs: `*brief*`, `*spec*`, `docs/`, `intake/`
+- Drafts & prior pieces: `drafts/`, `content/`, `posts/`, `*.docx`, root-level `.md` files that aren't config
+- Research: `research/`, `notes/`, source/citation lists
+- Ops: SOPs, runbooks, calendars, `*checklist*`
+
+**Extract (content workspace):** the project's subject and audience, voice/style rules, the newest relevant draft or prior published piece, any hard rules (approved terminology, "never say X").
+
 **Budget:** ~500 lines max for Priority 1.
 
-## Priority 2 — Git Context (if available)
+## Priority 2 — Change History (git if available)
 
-Only run if git is initialized. Skip silently if not.
+Only run the git commands if git is initialized. **No git?** List recently modified files instead (`ls -lt`, top ~15) — recent activity shows where the work is happening; skip the rest silently.
 
 **Commands:**
 - `git log --oneline -10` — last 10 commits
@@ -58,16 +67,16 @@ Only run if git is initialized. Skip silently if not.
 
 **Budget:** ~100 lines max for Priority 2.
 
-## Priority 3 — File Structure (conditional)
+## Priority 3 — Named Artifacts (conditional)
 
-Only run if the raw prompt mentions specific modules, files, or code areas. Skip for general/docs requests.
+Run if the raw prompt names anything specific — modules, files, code areas, documents, drafts, campaigns, datasets. Skip only when nothing concrete is named.
 
 **Steps:**
 1. Resolve module names using boost-patterns.md aliases (e.g., "auth module" → `src/auth/`)
 2. If no alias found, search for directories/files matching the mentioned term
 3. List directory structure (1-2 levels deep) around matched paths
 4. Read first 50 lines of directly mentioned files
-5. Check for related test files (`__tests__/`, `*.test.*`, `*.spec.*` siblings)
+5. Code: check for related test files (`__tests__/`, `*.test.*`, `*.spec.*` siblings). Content: check for prior versions or related drafts of the named piece (same name stem, `v1`/`v2`/`final` variants, same folder)
 
 **Secrets avoidance — NEVER read:**
 - `.env`, `.env.*` files
@@ -94,7 +103,7 @@ Read `boost-patterns.md` from the project root. If it doesn't exist, skip silent
 **Detecting unresolved terms — track any term that:**
 1. Looks like a module/component name (capitalized, hyphenated, or quoted)
 2. Is NOT found in boost-patterns.md aliases
-3. Is NOT a standard programming term (e.g., "function", "class", "API")
+3. Is NOT a standard term of the domain (code: "function", "class", "API"; content: "draft", "brief", "post")
 4. Could NOT be resolved to a file path via Priority 3
 
 These become candidates for Step 9 suggestions.

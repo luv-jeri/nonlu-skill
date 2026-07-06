@@ -3,5 +3,5 @@
   "title": "Boost — Prompt Enhancer",
   "description": "Transform rough prompts into structured, context-rich prompts. Just add /boost to any prompt. Detects task type, discovers project context, and structures your prompt with the right template — debug, feature, refactor, test, review, docs, or general.",
   "category": "productivity",
-  "skills": ["boost", "pixel", "qa-shield", "qa-watch"]
+  "skills": ["boost", "pixel", "qa-shield", "qa-watch", "skill-smith", "skill-evolve"]
 }

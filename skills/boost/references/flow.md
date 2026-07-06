@@ -61,23 +61,30 @@ If partially structured (1-2 criteria), run the full enhancement flow — existi
 
 ## Step 3: Detect Task Type
 
-Scan the raw prompt for keywords (case-insensitive):
+**3a — Domain hint (one glance, before any keyword counting):**
+- **Code project** (any of: `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, a `src/` dir) → dev categories win ties; dev templates apply.
+- **Content workspace** (no code manifests; drafts / briefs / research notes / brand docs — `.md`/`.docx`/`.txt` files, folders like `content/`, `drafts/`, `research/`, `brand/`) → general categories win ties; general template variants apply (Step 5).
+- **Neither / unclear** → keywords alone decide.
+
+**3b — Keyword scan** (case-insensitive):
 
 | Category | Keywords |
 |----------|----------|
 | Debug | fix, bug, broken, error, not working, crash, failing, issue |
-| Feature | add, create, build, implement, new, make, setup, introduce |
+| Feature | add, create (code), build, implement, new, make, setup, introduce |
 | Refactor | refactor, clean up, reorganize, simplify, messy, restructure, improve, optimize |
 | Test | test, coverage, spec, assert, unit test, integration test |
 | Review | review, check, audit, look at, examine, inspect |
 | Docs | document, readme, explain, comment, describe, write docs |
+| Create | write, draft, compose, article, post, email, landing page, copy, video script |
+| Research | research, investigate, compare, find out, sources, options, "which should", "what's the best" |
+| Plan | plan, roadmap, schedule, organize, strategy, prepare, checklist |
 | General | (fallback — no keywords matched) |
 
 **Detection rules:**
-- Count keyword matches per category (case-insensitive)
-- Highest count wins
-- Tie-breaking priority: Debug > Feature > Refactor > Test > Review > Docs > General
-- Debug is highest because "fix" and "error" co-occur with other categories but debugging is almost always the primary intent
+- Count keyword matches per category (case-insensitive); highest count wins
+- Ties: the domain hint from 3a decides; if still tied → Debug > Feature > Refactor > Test > Review > Docs > Create > Research > Plan > General
+- Debug stays highest in code projects because "fix" and "error" co-occur with other categories but debugging is almost always the primary intent. In a content workspace, "fix this paragraph" is a writing job, not a Debug job — the domain hint makes that call.
 
 **Edge case:** If the raw prompt describes two distinct tasks (e.g., "fix the login bug and add dark mode"), tell the user: "This looks like two separate tasks. Want me to boost them individually?"
 
@@ -97,7 +104,10 @@ Stay within ~2000 line budget.
 
 ## Step 5: Structure the Prompt
 
-Read `references/task-templates.md` and select the template matching the detected task type.
+Select the template file by domain (from Step 3a), then the template matching the detected task type:
+- **Code project** → `references/task-templates.md` (dev templates, unchanged behavior)
+- **Content workspace** → `references/task-templates-general.md` — Create / Research / Plan live here, plus general variants (Diagnose / Revise / Evaluate / Verify / Explain) that stand in for the dev Debug / Refactor / Review / Test / Docs templates
+- **Unclear** → the winning category's home file (Create/Research/Plan → general file; the six dev categories → dev file)
 
 Fill in every field:
 - **Task:** Rewrite the raw prompt as a clear one-line summary
@@ -169,6 +179,8 @@ When a user runs `/boost --init` in a project for the first time, Boost can auto
 4. Check `git log --oneline -20` → identify active areas and recent contributors
 5. Read `.gitignore` patterns → populate "Do Not Touch" section
 6. Present the generated patterns to the user for review before saving
+
+**Non-code workspace variant (no code manifests):** scan top-level docs and folders (drafts, briefs, research, brand assets) for Aliases; read `CLAUDE.md` / `AGENTS.md` / a style guide for conventions; use recently modified files (`ls -lt`) for active areas; anything marked final / approved / published seeds "Do Not Touch".
 
 This is a one-time bootstrap. After that, the adaptive learning system (Step 9) keeps patterns up to date incrementally.
 

@@ -403,3 +403,10 @@ If you catch yourself thinking any of these, STOP:
 | "The context budget is just a guideline" | Hard stop at 3000 lines. Suggest narrower scope |
 | "This finding doesn't need a location" | Every finding needs file:line or DOM element |
 | "I'll skip scoping since the user specified --focus" | Even in focus mode, still analyze what was built for context |
+
+## Learning capture
+
+When this skill errs, misfires, or the user corrects it: append a dated entry to
+`LEARNINGS.md` in this skill's folder (what happened · expected vs actual ·
+root-cause guess · context). Do NOT edit this SKILL.md mid-task. To absorb
+learnings into the skill, run `/skill-evolve <skill-name>`.

@@ -39,3 +39,14 @@ Present each scenario to the agent. Record whether the skill activated (TRIGGER)
 | 8 | `/booster add feature` | NO TRIGGER | Different command name |
 | 9 | `document the /boost endpoint` | NO TRIGGER | Describing an API endpoint |
 | 10 | `what does /boost do?` | NO TRIGGER | Asking about the skill, not invoking |
+
+## Non-code triggers (added 2026-07-06 — boost generalization)
+
+Should fire and route to GENERAL templates (workspace has no code manifests):
+1. "write a blog post about our July launch /boost" → Create
+2. "/boost research the best print-on-demand partner for us" → Research
+3. "plan next month's content calendar /boost" → Plan
+4. "fix this paragraph, it reads clunky /boost" → domain hint overrides Debug → Revise (general)
+
+Should still route to DEV templates (workspace has package.json):
+5. "fix the login crash /boost" → Debug, task-templates.md — unchanged behavior

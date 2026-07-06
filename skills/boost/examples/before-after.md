@@ -270,3 +270,49 @@
   - Merge to main triggers deployment
   - Pipeline under 5 minutes
 ```
+
+---
+
+## Example 8: Content Workspace — Create (non-code)
+
+**Raw:** `write a newsletter about the new collection /boost`
+
+**Boosted:**
+```
+## Task: Write launch newsletter for the new mug collection
+## Type: Create
+## Context:
+  - Project: ceramics shop; voice per STYLE.md (warm, plainspoken)
+  - Prior pieces: newsletters/2026-05-spring.md (tone reference)
+  - Brand rules: never "artisanal"; one CTA only
+## Brief: Announce 12 new mugs to the list; drive first-week orders
+## Audience: Newsletter subscribers — already know the brand
+## Tone / Style: per STYLE.md; first person singular
+## Must Include: launch date, price + shipping, one photo block, single CTA
+## Must Avoid: discount framing, "artisanal", multiple CTAs
+## Length / Format: ~250 words, subject line + 3 short sections
+## Success Criteria:
+  - Subject line under 45 chars; reader knows what/when/how much in one scroll
+```
+
+Note the domain hint: no package.json in this workspace, so "write" routes to Create (general file), not Feature.
+
+## Example 9: Content Workspace — Research (non-code)
+
+**Raw:** `research which email tool we should switch to /boost`
+
+**Boosted:**
+```
+## Task: Recommend an email platform to replace the current one
+## Type: Research
+## Context:
+  - Project: shop marketing ops; current tool exports available in ops/
+  - Existing notes: research/email-tools-2025.md (last year's comparison)
+## Question: Which email platform should we switch to for <2k subscribers on a small budget?
+## Scope: In — pricing, automation, migration effort. Out — enterprise tools, self-hosted.
+## Sources: official pricing pages, credible reviews; verify against last year's notes
+## Deliverable: comparison table + ONE recommendation with reasoning
+## Confidence & Gaps: state confidence and what wasn't verifiable
+## Success Criteria:
+  - Direct answer with cited sources; migration steps sketched for the winner
+```

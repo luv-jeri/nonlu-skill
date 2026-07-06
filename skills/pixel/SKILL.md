@@ -34,3 +34,10 @@ Read `references/flow.md` for the complete two-phase process.
 ## Iron Laws
 
 Read `references/red-flags.md` before proceeding. Non-negotiable.
+
+## Learning capture
+
+When this skill errs, misfires, or the user corrects it: append a dated entry to
+`LEARNINGS.md` in this skill's folder (what happened · expected vs actual ·
+root-cause guess · context). Do NOT edit this SKILL.md mid-task. To absorb
+learnings into the skill, run `/skill-evolve <skill-name>`.

@@ -10,11 +10,11 @@ A prompt is considered "already structured" if it meets **3 or more** of these c
 
 1. **Contains markdown headers** — `##` or `###` section dividers
 2. **Contains explicit constraints** — words like "must not", "do not change", "preserve", "maintain"
-3. **Contains specific file paths** — e.g., `src/auth/login.ts`, `components/Header.tsx`
+3. **Names specific artifacts** — file paths (`src/auth/login.ts`), document links, draft/campaign/dataset names
 4. **Is longer than 200 words** with clear paragraph or list structure
 5. **Contains a numbered or bulleted list** of requirements or steps
-6. **Mentions specific function or class names** — e.g., `handleSubmit()`, `UserService`
-7. **Includes error messages or stack traces** — for debug tasks, this IS the structured context
+6. **Mentions domain-specific named entities** — function/class names (`handleSubmit()`, `UserService`), section headings, audience segments, named metrics
+7. **Includes raw evidence** — error messages/stack traces, quoted feedback, analytics numbers; for diagnose tasks, this IS the structured context
 
 ## Scoring
 

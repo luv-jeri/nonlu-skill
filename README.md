@@ -26,7 +26,9 @@
   <code>/boost</code> — Stop giving your AI vague prompts<br/>
   <code>/pixel</code> — Stop getting "close enough" UI from Figma designs<br/>
   <code>/qa-shield</code> — Stop shipping attention-to-detail bugs to QA<br/>
-  <code>/qa-watch</code> — Catch issues as you build, not after
+  <code>/qa-watch</code> — Catch issues as you build, not after<br/>
+  <code>/skill-smith</code> — Stop hand-rolling skills that never fire<br/>
+  <code>/skill-evolve</code> — Stop letting your skills repeat the same mistake
 </p>
 
 ---
@@ -41,6 +43,8 @@
 | :dart: | **Pixel** | `/pixel` | Transforms Figma designs into pixel-perfect UI with zero guesswork |
 | :shield: | **QA Shield** | `/qa-shield` | Catches attention-to-detail issues across 9 categories before QA finds them |
 | :eyes: | **QA Watch** | `/qa-watch` | Lightweight QA companion that checks for issues as you build |
+| :hammer: | **Skill Smith** | `/skill-smith` | Creates new skills with the right ceremony — quick, standard, or hardened tier |
+| :seedling: | **Skill Evolve** | `/skill-evolve` | Captures a skill's mistakes and upgrades the skill with proof, never silently |
 
 <br/>
 
