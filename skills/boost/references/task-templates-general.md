@@ -118,7 +118,7 @@ Same skeleton as their dev counterparts (Task / Type / Context / body / Constrai
 
 **Diagnose** (dev: Debug) — body: `## Symptom` (what's wrong, verbatim evidence — quoted feedback, numbers), `## Expected vs Actual`, `## When It Started / What Changed`. Constraints: don't change anything while diagnosing; report cause before fixes.
 
-**Revise** (dev: Refactor) — body: `## Current State` (what exists and what's wrong with it), `## Target State`, `## Boundaries` (what must NOT change — approved claims, quotes, structure, length limits). Success: the piece reads better AND everything in Boundaries survived untouched.
+**Revise** (dev: Refactor; also receives content-workspace "fix the prose" prompts per flow.md Step 3) — body: `## Current State` (what exists and what's wrong with it), `## Target State`, `## Boundaries` (what must NOT change — approved claims, quotes, structure, length limits). Success: the piece reads better AND everything in Boundaries survived untouched.
 
 **Evaluate** (dev: Review) — body: `## Focus Areas` filled per domain: writing → clarity, accuracy, tone-fit, structure; design → usability, accessibility, brand-fit; ops → completeness, feasibility, risk. Output: findings ranked by severity, each with a concrete fix.
 

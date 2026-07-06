@@ -72,7 +72,7 @@ Structure (mechanical rules — templates in `references/templates.md`):
 
 1. Single YAML line — no wrapping (a wrapped description has silently killed discovery before).
 2. ≤1024 characters.
-3. Says what the skill does + "Use when …" trigger conditions.
+3. Trigger conditions front and center ("Use when …"); any "what it is" fragment stays to a few identity words — never how it works.
 4. One trigger per distinct branch from Step 1 — no synonyms padding the list.
 5. Skill's subject word front-loaded.
 6. Zero process summary — no step names, no workflow narration.

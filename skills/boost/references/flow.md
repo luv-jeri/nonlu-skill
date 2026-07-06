@@ -84,7 +84,8 @@ If partially structured (1-2 criteria), run the full enhancement flow — existi
 **Detection rules:**
 - Count keyword matches per category (case-insensitive); highest count wins
 - Ties: the domain hint from 3a decides; if still tied → Debug > Feature > Refactor > Test > Review > Docs > Create > Research > Plan > General
-- Debug stays highest in code projects because "fix" and "error" co-occur with other categories but debugging is almost always the primary intent. In a content workspace, "fix this paragraph" is a writing job, not a Debug job — the domain hint makes that call.
+- Debug stays highest in code projects because "fix" and "error" co-occur with other categories but debugging is almost always the primary intent.
+- **Content workspace + prose target** (paragraph, sentence, section, draft, post, page copy): fix/improve/clean-up prompts route to **Revise** in the general file — fixing prose is revision, not diagnosis. Reserve Diagnose for cause-finding ("why did signups drop?").
 
 **Edge case:** If the raw prompt describes two distinct tasks (e.g., "fix the login bug and add dark mode"), tell the user: "This looks like two separate tasks. Want me to boost them individually?"
 

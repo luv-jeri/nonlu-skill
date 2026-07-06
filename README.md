@@ -10,6 +10,8 @@
   <img src="https://img.shields.io/badge/%F0%9F%8E%AF_Pixel-Figma_to_Perfect_UI-blue?style=for-the-badge" alt="Pixel" />
   <img src="https://img.shields.io/badge/%F0%9F%9B%A1_QA_Shield-Post--Build_QA-green?style=for-the-badge" alt="QA Shield" />
   <img src="https://img.shields.io/badge/%F0%9F%91%80_QA_Watch-Build_Companion-orange?style=for-the-badge" alt="QA Watch" />
+  <img src="https://img.shields.io/badge/%F0%9F%94%A8_Skill_Smith-Tiered_Skill_Creator-purple?style=for-the-badge" alt="Skill Smith" />
+  <img src="https://img.shields.io/badge/%F0%9F%8C%B1_Skill_Evolve-Skills_That_Learn-teal?style=for-the-badge" alt="Skill Evolve" />
 </p>
 
 <p align="center">

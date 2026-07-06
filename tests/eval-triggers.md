@@ -46,7 +46,7 @@ Should fire and route to GENERAL templates (workspace has no code manifests):
 1. "write a blog post about our July launch /boost" → Create
 2. "/boost research the best print-on-demand partner for us" → Research
 3. "plan next month's content calendar /boost" → Plan
-4. "fix this paragraph, it reads clunky /boost" → domain hint overrides Debug → Revise (general)
+4. "fix this paragraph, it reads clunky /boost" → content workspace + prose target routes to Revise (general) — prose fixing is revision, not Debug/Diagnose (flow.md Step 3 detection rules)
 
 Should still route to DEV templates (workspace has package.json):
 5. "fix the login crash /boost" → Debug, task-templates.md — unchanged behavior

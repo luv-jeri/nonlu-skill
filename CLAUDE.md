@@ -89,7 +89,7 @@ Capture skill mistakes instantly; upgrade skills via classified evidence + appro
 
 ## Making Changes
 
-1. Identify the skill's pattern first. For self-contained skills (qa-shield, qa-watch), SKILL.md IS the process — edit it directly. For routers (boost, pixel), edit the relevant `references/*.md`; SKILL.md only changes when the step index changes.
+1. Identify the skill's pattern first. For self-contained skills (qa-shield, qa-watch, skill-smith, skill-evolve), SKILL.md IS the process — edit it directly. For routers (boost, pixel), edit the relevant `references/*.md`; SKILL.md only changes when the step index changes.
 2. Run `tests/eval-triggers.md` mentally — would any trigger behavior change?
 3. Update `tests/eval-quality.md` if grading criteria changed.
 4. Verify against the skill's pattern: for self-contained skills, could Claude execute the full process without reading ANY reference file? For routers, does every step in SKILL.md still point to a real reference file?
