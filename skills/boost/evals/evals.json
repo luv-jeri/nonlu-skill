@@ -1,0 +1,51 @@
+{
+  "skill": "boost",
+  "notes": "RED from flow contract (pre-baseline): asserts derive only from flow.md promises (Present header, Unknown — investigate marker, passthrough string) and red-flags.md laws (no invented paths, no un-implied constraints).",
+  "include": ["references/flow.md", "references/red-flags.md"],
+  "evals": [
+    {
+      "id": "rough-debug",
+      "prompt": "/boost login is broken after yesterday's deploy, fix it",
+      "asserts": [
+        {"check": "contains", "value": "**Boost enhanced your prompt:**"},
+        {"check": "contains", "value": "Unknown — investigate"},
+        {"check": "not_contains", "value": "Executing as-is."},
+        "The enhanced prompt does not invent specific file paths, function names, or root causes the user never mentioned; missing specifics are marked Unknown — investigate."
+      ]
+    },
+    {
+      "id": "rough-writing",
+      "prompt": "/boost write a blog post about our new feature",
+      "asserts": [
+        {"check": "contains", "value": "**Boost enhanced your prompt:**"},
+        {"check": "not_contains", "value": "Executing as-is."},
+        "The detected task type is a writing/content category (Create or Docs), not a code category such as Debug, Refactor, or Test.",
+        "No audience, word-count, or tone constraints appear that the user did not imply."
+      ]
+    },
+    {
+      "id": "rough-research",
+      "prompt": "/boost research the best vector databases for our use case",
+      "asserts": [
+        {"check": "contains", "value": "**Boost enhanced your prompt:**"},
+        {"check": "contains", "value": "Unknown — investigate"},
+        {"check": "not_contains", "value": "Executing as-is."},
+        "The task is categorized as Research and the enhanced prompt states what to investigate rather than answering the research question itself."
+      ]
+    },
+    {
+      "id": "vague-one-liner",
+      "prompt": "/boost make it better",
+      "asserts": [
+        {"check": "contains", "value": "**Boost enhanced your prompt:**"},
+        {"check": "contains", "value": "Unknown — investigate"},
+        {"check": "not_contains", "value": "Executing as-is."},
+        "The response does not guess what 'it' refers to; the ambiguous target is surfaced as unknown rather than invented."
+      ]
+    }
+  ],
+  "triggers": {
+    "should_trigger": ["/boost fix the login bug", "/boost! draft the launch email"],
+    "should_not_trigger": ["how do I boost my wifi signal strength", "what does the /boost skill do?"]
+  }
+}
