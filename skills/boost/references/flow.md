@@ -122,9 +122,9 @@ If a field cannot be filled → write "Unknown — investigate" (never omit, nev
 
 ## Step 6: Present
 
-Display the enhanced prompt prefixed with:
+Display the enhanced prompt prefixed with this exact line, verbatim — the `**` bold markers are part of the string, copy them literally:
 
-**Boost enhanced your prompt:**
+`**Boost enhanced your prompt:**`
 
 ## Step 7: Decide
 
