@@ -2,6 +2,7 @@
 name: boost
 description: Use when user appends or prefixes /boost or /boost! to their prompt — any kind of task, coding or not (writing, research, planning, design, ops).
 user-invokable: true
+disable-model-invocation: true
 ---
 
 # Boost — Prompt Enhancer

@@ -2,6 +2,7 @@
 name: qa-watch
 description: Use when user invokes /qa-watch to run lightweight QA checks during development, or /qa-watch --session to enable continuous checking within the current conversation
 user-invokable: true
+disable-model-invocation: true
 ---
 
 <SUBAGENT-STOP>

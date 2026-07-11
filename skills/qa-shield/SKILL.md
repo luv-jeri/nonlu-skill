@@ -2,6 +2,7 @@
 name: qa-shield
 description: Use when user invokes /qa-shield, /qa-shield!, or /qa-shield with flags like --focus, --all, or a file/directory path
 user-invokable: true
+disable-model-invocation: true
 ---
 
 <SUBAGENT-STOP>
