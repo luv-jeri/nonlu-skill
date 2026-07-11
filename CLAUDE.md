@@ -16,6 +16,7 @@ This is a Claude Code plugin / Agent Skills package. No application code — onl
 - Description field = ONLY trigger conditions ("Use when user invokes /x"), NEVER a process summary. This is the string Claude matches on to fire the skill (Claude Search Optimization); a description that summarizes the process instead of the trigger mis-fires.
 - Each skill MUST create a TodoWrite checklist at start for step tracking.
 - Each skill has its own `tests/eval-triggers.md` (does it fire on the right prompts?) and `tests/eval-quality.md` (output grading rubric).
+- T2+ skills also carry `evals/evals.json`; `/skill-evolve` RUN mode is the eval-driven improvement loop (one change per iteration, commit/revert by score, logged to `evals/eval-log.md`).
 
 ### Two SKILL.md patterns — know which one you're editing
 
@@ -26,7 +27,7 @@ The repo mixes two structures. Match the one already in the skill you touch; don
 
 ## Build, test & distribution
 
-- **No build/lint/test tooling.** `package.json` has no `scripts`; there is no test runner. The `tests/eval-*.md` files are specs evaluated by reading and reasoning ("run eval-triggers.md mentally"), not executed.
+- **One test tool ships: the eval runner.** `python3 skills/skill-evolve/scripts/run_evals.py <skill-dir>` executes a skill's `evals/evals.json` (binary asserts: deterministic checks natively + prose asserts judged by a cheap model) — exit 0 green; `--selftest` proves the runner offline. Skills without an evals.json keep their `tests/eval-*.md` prose specs (evaluated by reading) until evolved; where evals.json exists it is the executable source of truth.
 - **Distribution:** a skill is only shipped once it's listed in `.claude-plugin/marketplace.json` (`skills` array). Adding a skill = create `skills/<name>/`, register it there, and add relevant `keywords` to `package.json`.
 
 ## Skills

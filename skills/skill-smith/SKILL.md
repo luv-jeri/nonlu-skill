@@ -17,6 +17,7 @@ Creates skills with the right amount of ceremony for the stakes: **quick** for p
 5. **Every generated skill ships with `LEARNINGS.md` and the learning-capture footer.** No exceptions — this is what makes skills evolvable.
 6. **No secrets in any skill.** Credentials resolve from environment variables only.
 7. **The user picks the tier and approves the final draft.** The smith recommends; it never ships unseen work.
+8. **T2+ ships executable evals.** `evals/evals.json` with binary asserts, run green via skill-evolve's runner before ship — prose eval files alone are not verification.
 
 ## Step 0 — TodoWrite checklist
 
@@ -27,7 +28,7 @@ Create todos: interview · tier · fleet check · draft · lint description · v
 1. **Job:** what should the skill do, in one sentence?
 2. **Trigger branches:** in which distinct situations should it fire? (Each situation becomes one trigger in the description — no synonym padding.)
 3. **Invoker:** will you type `/name`, or should Claude notice on its own?
-   - User-typed → `user-invokable: true` (add `disable-model-invocation: true` if it must ONLY run when typed).
+   - User-typed → `user-invokable: true` + `disable-model-invocation: true` **by default** (menu hygiene — every model-invocable description taxes every conversation); drop the disable only when model-noticing is justified in writing (record the justification in the ship report).
    - Model-noticed → the description carries the full trigger weight; spend extra care in Step 5.
    - Rule: a user-invoked skill may call model-invoked skills, never another user-invoked one.
 4. **Danger check:** does it delete, publish, send, spend, or touch production/external systems? (Any yes → recommend Hardened.)
@@ -67,6 +68,7 @@ Structure (mechanical rules — templates in `references/templates.md`):
 | Declares done too early | Explicit completion definition ("done means…") |
 
 - **Automation packaging (offer when the skill should run unattended):** emit a pairing recipe into the generated skill's `references/automation.md` — hook snippet, crontab line, or CI step — plus guardrails (tool allow-list, turn/budget caps, idempotent + verifiable task scoping). Rules that must hold 100% of the time go in a hook, not prose: hooks are deterministic, skills are probabilistic.
+- **Craft pattern (studied production skills — skeletons in `references/templates.md` §6):** open with a one-line driving idea; iron laws each carry their WHY; every gate the skill declares is named, has a checkable completion, and states its **verification tier** (deterministic → rule → ground-truth → LLM-judge → human; a judge/human-tier gate must say why a cheaper tier can't work); failure-modes table (symptom → cause → fix) required at T2+; sections carry line budgets ('STOP at the budget — demote detail to references/'); close with WHAT THIS SKILL DOES NOT DO + handoffs. Process/knowledge split is law: SKILL.md = process only, knowledge lives in references/ (debug rule: process bug → SKILL.md, knowledge bug → references).
 
 ## Step 5 — Description lint (all eight must pass)
 
@@ -82,8 +84,9 @@ Structure (mechanical rules — templates in `references/templates.md`):
 ## Step 6 — Verify (by tier)
 
 - **T1:** one adversarial walkthrough. Write the single most likely misuse or failure prompt; walk the draft against it line by line. The body must already defend, or it gets exactly one fix — not five new rules.
-- **T2:** RED baseline — run the task without the skill (or honestly replay a recent real attempt) and record 2–3 verbatim failures in `tests/eval-quality.md`; confirm each observed failure is answered by a specific line of the draft (cite them). Fill `tests/eval-triggers.md` from Step 5.8.
+- **T2:** RED baseline — run the task without the skill (or honestly replay a recent real attempt) and record 2–3 verbatim failures in `tests/eval-quality.md`; confirm each observed failure is answered by a specific line of the draft (cite them). Then write `evals/evals.json` (3+ evals; skeleton in `references/templates.md` §7; encode the RED failures as asserts) and execute `python3 ${CLAUDE_SKILL_DIR}/../skill-evolve/scripts/run_evals.py <skill-dir>` until green — the executable evals are the source of truth; `tests/eval-*.md` remain as trigger notes. Fill `tests/eval-triggers.md` from Step 5.8.
 - **T3:** all of T2, then hand to a FRESH reviewer (new session or subagent) who re-runs the lint and evals themselves — never trusting the author's claims — and makes one loophole attempt per iron law of the generated skill. The author never approves their own hardened skill.
+- **Negative-space pass:** list what the draft is silent on (inputs it assumes, situations unhandled, formats unspecified); decide each silence deliberately — every omission silently delegates to the model's priors.
 
 ## Step 7 — Wire evolution (law 5)
 
@@ -108,3 +111,4 @@ Structure (mechanical rules — templates in `references/templates.md`):
 | "It overlaps an existing skill a bit" | Overlap = evolve that skill instead. Duplicates drift. |
 | "User is in a hurry — skip the tier question" | The tier IS the time decision. It's one question. |
 | "This skill needs broad tool access to be flexible" | Narrowest set that works. Broad grants are how skill installs become incidents. |
+| "Evals can come after ship" | Un-run evals are decoration. The runner takes minutes; law 8. |

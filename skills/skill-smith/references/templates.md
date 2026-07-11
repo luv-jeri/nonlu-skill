@@ -8,6 +8,8 @@ Supplementary boilerplate. The full process lives in SKILL.md; these are the bla
 3. LEARNINGS.md template
 4. Learning-capture footer
 5. tests/ file skeletons
+6. Craft-pattern skeleton (T2+)
+7. evals.json skeleton
 
 ---
 
@@ -105,3 +107,66 @@ prompt correctly?
 ## Grading rubric
 - <what a good output must contain / must never contain>
 ```
+
+---
+
+## 6. Craft-pattern skeleton (T2+)
+
+```markdown
+# <skill-name>
+
+<One-line driving idea — the single sentence the whole skill serves.>
+
+## Iron laws
+1. **<law>.** WHY: <the failure this law prevents>.
+
+## Gates
+| gate | completion check | tier |
+|---|---|---|
+| <name> | <checkable "done means…"> | deterministic / rule / ground-truth / LLM-judge / human — judge or human tier must say why a cheaper tier can't work |
+
+## Failure modes
+| symptom | cause | fix |
+|---|---|---|
+| <observed symptom> | <root cause> | <fix> |
+
+## What this skill does NOT do
+- <out-of-scope thing> → hand off to <skill/tool>.
+
+## References
+| file | load when | pair with |
+|---|---|---|
+| references/<name>.md | <trigger to load> | <companion file/step> |
+```
+
+Sections carry line budgets — STOP at the budget; demote detail to `references/`.
+
+---
+
+## 7. evals.json skeleton
+
+```json
+{
+  "skill": "<dirname>",
+  "notes": "RED baseline: <verbatim observed failures>",
+  "include": ["references/<load-bearing>.md  (router skills only — inlined for the run)"],
+  "evals": [
+    {
+      "id": "<pressure-name>",
+      "prompt": "<realistic tempting user message>",
+      "asserts": [
+        {"check": "contains", "value": "<must-have string>"},
+        {"check": "not_contains", "value": "<banned string>"},
+        {"check": "max_words", "value": 300},
+        "Prose assert the judge grades — one observable behavior, binary ('two strangers get the same answer')."
+      ]
+    }
+  ],
+  "triggers": {
+    "should_trigger": ["<realistic query>"],
+    "should_not_trigger": ["<near-miss>"]
+  }
+}
+```
+
+Deterministic checks: contains, not_contains, regex, not_regex, max_words, min_words; anything else is judge-tier prose (costs a model call; prefer deterministic).
