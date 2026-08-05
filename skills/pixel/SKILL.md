@@ -1,6 +1,6 @@
 ---
 name: pixel
-description: Use when the user invokes /pixel, /pixel! or /pixel --relaxed, with a Figma URL, a design screenshot in context, or pasted design specs, to build UI that must match a design exactly.
+description: Use when the user invokes /pixel, /pixel! or /pixel --relaxed, with a Figma URL, a design screenshot in context, a screen recording or video of a UI, or pasted design specs, to build UI that must match a design exactly.
 user-invokable: true
 disable-model-invocation: true
 ---
