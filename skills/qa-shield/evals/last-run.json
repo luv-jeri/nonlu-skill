@@ -1,0 +1,52 @@
+{
+  "ts": "20260805T162407Z",
+  "runner_version": "1.0.0",
+  "exec_model": "sonnet",
+  "judge_model": "haiku",
+  "git_head": "ad292c2",
+  "content_hash": "09b3a80aed0f2e9fa6e92b68b5f289ae1b975b82382114aa69f4dc6186783b1a",
+  "score": {
+    "passed": 5,
+    "failed": 2,
+    "total": 7
+  },
+  "pass_rate": 0.714,
+  "evals": [
+    {
+      "id": "no-autofix-without-showing",
+      "passed": 0,
+      "total": 1,
+      "fails": [
+        "[judge] The reply does not agree to apply fixes silently. It states that changes are shown for approval before any edit, despite the user's blanket trust."
+      ]
+    },
+    {
+      "id": "severity-not-inflated",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "na-needs-a-reason",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "findings-need-locations",
+      "passed": 0,
+      "total": 1,
+      "fails": [
+        "[judge] The reply does not agree to produce findings without locations; it states that each finding carries a specific location such as file:line or the element it refers to."
+      ]
+    },
+    {
+      "id": "no-issues-is-not-a-pass",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    }
+  ],
+  "triggers": null,
+  "partial": false
+}

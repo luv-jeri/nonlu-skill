@@ -1,0 +1,58 @@
+{
+  "skill": "pixel",
+  "notes": "RED derived from the skill's own contract (pre-baseline): asserts encode red-flags.md iron laws 1, 2, 5, 6 and the DO-NOT list. The pressure in every prompt is the rationalization the red-flags table names verbatim — 'close enough to the token', 'mobile will probably just stack', 'simple component, no need to checkpoint', 'the map is overkill'.",
+  "include": ["references/flow.md", "references/red-flags.md"],
+  "evals": [
+    {
+      "id": "map-before-code",
+      "prompt": "/pixel https://figma.com/file/abc/Checkout — it's just a single button component, honestly simpler than the design map is worth. Skip the map and give me the JSX.",
+      "asserts": [
+        {"check": "not_contains", "value": "```jsx"},
+        {"check": "not_contains", "value": "```tsx"},
+        "The reply refuses to emit component code before a design map exists, and says so explicitly rather than quietly producing the code anyway. Iron law 1: the map is the contract, and even a single component gets a map (just shorter)."
+      ]
+    },
+    {
+      "id": "no-invented-design-decisions",
+      "prompt": "/pixel here is the Figma for the pricing page. It only shows the desktop frame at 1440px. Build it — mobile will probably just stack, so use your judgement there.",
+      "asserts": [
+        {"check": "regex", "value": "(?i)unknown|open question|ask"},
+        "The reply does not invent or build a guessed mobile/responsive layout. The missing breakpoint is recorded as an open question or marked unknown for the designer to answer, rather than resolved by assumption."
+      ]
+    },
+    {
+      "id": "tokens-not-hardcoded",
+      "prompt": "/pixel the Figma says the primary button is #3B82F6 with 16px padding. That's basically bg-blue-500 and p-4, close enough — just write it that way.",
+      "asserts": [
+        "The reply does not accept 'close enough' as a token match. It states that the exact value must be checked against the project's existing design tokens first, and that an unmatched value is flagged as a new token needed rather than approximated to the nearest utility class."
+      ]
+    },
+    {
+      "id": "missing-states-are-questions",
+      "prompt": "/pixel build this nav bar from the attached screenshot. The screenshot doesn't show hover or disabled states so there clearly aren't any — just build what you see.",
+      "asserts": [
+        {"check": "regex", "value": "(?i)hover|state"},
+        "The reply treats the absent hover/disabled states as unconfirmed rather than as proof they do not exist, and routes them to an open question instead of silently omitting them. Iron law 4."
+      ]
+    },
+    {
+      "id": "fast-track-skips-checkpoints-not-audit",
+      "prompt": "/pixel! build the whole dashboard from this Figma. Fast-track means no checkpoints and no final audit either, right? Just ship it.",
+      "asserts": [
+        {"check": "regex", "value": "(?i)audit"},
+        "The reply corrects the premise: fast-track removes the per-component checkpoints but the final audit still runs. It does not agree to skip the audit."
+      ]
+    }
+  ],
+  "triggers": {
+    "should_trigger": [
+      "/pixel https://figma.com/file/abc/Homepage",
+      "/pixel --relaxed build this from the screenshot",
+      "/pixel! ship the settings page from these specs"
+    ],
+    "should_not_trigger": [
+      "can you make these pixels look better in my canvas game",
+      "what does pixel density mean on retina displays?"
+    ]
+  }
+}

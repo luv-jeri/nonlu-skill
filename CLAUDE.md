@@ -16,7 +16,11 @@ This is a Claude Code plugin / Agent Skills package. No application code — onl
 - Description field = ONLY trigger conditions ("Use when user invokes /x"), NEVER a process summary. This is the string Claude matches on to fire the skill (Claude Search Optimization); a description that summarizes the process instead of the trigger mis-fires.
 - Each skill MUST create a TodoWrite checklist at start for step tracking.
 - Each skill has its own `tests/eval-triggers.md` (does it fire on the right prompts?) and `tests/eval-quality.md` (output grading rubric).
-- T2+ skills also carry `evals/evals.json`; `/skill-evolve` RUN mode is the eval-driven improvement loop (one change per iteration, commit/revert by score, logged to `evals/eval-log.md`).
+- **All seven skills carry `evals/evals.json`** (as of 2026-08-05); it is the executable source of truth and must run green before a change merges. `/skill-evolve` RUN mode is the eval-driven improvement loop (one change per iteration, commit/revert by score, logged to `evals/eval-log.md`).
+- **Prefer deterministic asserts over judge asserts.** A judge graded the same rule wrongly in both directions during recap's build — it passed output that violated the rule, then failed output that did not. If a regex or a count can measure it, do not hand it to a model.
+- **A red assert is not automatically a skill defect.** Read the transcript under `evals/runs/` before editing anything: several reds in this repo's history were badly written tests, and fixing the test was the correct action. Record which it was in `evals/eval-log.md`.
+- **Never point an eval prompt at live repo state.** An eval that names a real path, or says "absorb this skill's learnings", tests the working tree at that instant, not the skill. This bit six evals on 2026-08-05: prompts named `src/components/Checkout.tsx` in a markdown-only repo (skill correctly answered "nothing to scan"), claimed unabsorbed learnings that did not exist (skill correctly refused to invent them), and started RUN mode against a dirty tree (skill correctly refused). Paste the component, the learnings, or the scenario **into the prompt**.
+- **One observable behavior per assert.** A compound assert ("keeps to the lite checklist AND names /qa-shield") fails correct work on its sub-clause and sends you hunting a defect that is not there. Split it into two evals.
 
 ### Two SKILL.md patterns — know which one you're editing
 
@@ -27,7 +31,8 @@ The repo mixes two structures. Match the one already in the skill you touch; don
 
 ## Build, test & distribution
 
-- **One test tool ships: the eval runner.** `python3 skills/skill-evolve/scripts/run_evals.py <skill-dir>` executes a skill's `evals/evals.json` (binary asserts: deterministic checks natively + prose asserts judged by a cheap model) — exit 0 green; `--selftest` proves the runner offline. Skills without an evals.json keep their `tests/eval-*.md` prose specs (evaluated by reading) until evolved; where evals.json exists it is the executable source of truth.
+- **One test tool ships: the eval runner.** `python3 skills/skill-evolve/scripts/run_evals.py <skill-dir>` executes a skill's `evals/evals.json` (binary asserts: deterministic checks natively + prose asserts judged by a cheap model) — exit 0 green; `--selftest` proves the runner offline. Every skill now has one, so `evals.json` is always the source of truth and `tests/eval-*.md` are the human record of why each assert exists (RED baseline, description lint, trigger rationale).
+- **Eval runs are slow** — a skill with long prompts and judge asserts can exceed 10 minutes. Run them with `run_in_background: true` rather than blocking, and never conclude "still running" means broken.
 - **Distribution:** a skill is only shipped once it's listed in `.claude-plugin/marketplace.json` (`skills` array). Adding a skill = create `skills/<name>/`, register it there, and add relevant `keywords` to `package.json`.
 
 ## Skills

@@ -1,6 +1,6 @@
 ---
 name: pixel
-description: Use when user invokes /pixel to build pixel-perfect UI from Figma designs. Transforms designs into structured design maps, then builds incrementally with verification checkpoints.
+description: Use when the user invokes /pixel, /pixel! or /pixel --relaxed, with a Figma URL, a design screenshot in context, or pasted design specs, to build UI that must match a design exactly.
 user-invokable: true
 disable-model-invocation: true
 ---

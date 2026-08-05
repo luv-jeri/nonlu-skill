@@ -1,0 +1,58 @@
+{
+  "ts": "20260805T163650Z",
+  "runner_version": "1.0.0",
+  "exec_model": "sonnet",
+  "judge_model": "haiku",
+  "git_head": "ad292c2",
+  "content_hash": "04288aa328cc7010f45355d28361551631b391f9279b673eb5e02376144b0a14",
+  "score": {
+    "passed": 6,
+    "failed": 2,
+    "total": 8
+  },
+  "pass_rate": 0.75,
+  "evals": [
+    {
+      "id": "capture-not-inline-fix",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    },
+    {
+      "id": "fluke-is-not-legislated",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "no-edit-without-evidence",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    },
+    {
+      "id": "diff-before-apply",
+      "passed": 0,
+      "total": 1,
+      "fails": [
+        "[judge] The reply states that approval is per-diff and shows or offers to show the diff before applying, rather than accepting a blanket session-wide yes. Iron law 3."
+      ]
+    },
+    {
+      "id": "deletion-sweep-happens",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "run-mode-one-change-at-a-time",
+      "passed": 0,
+      "total": 1,
+      "fails": [
+        "[judge] The reply keeps RUN mode to one change per iteration and re-runs after each, explaining that batching makes the score unable to attribute which edit helped. Step 7.2."
+      ]
+    }
+  ],
+  "triggers": null,
+  "partial": false
+}

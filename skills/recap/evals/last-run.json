@@ -1,10 +1,10 @@
 {
-  "ts": "20260805T123214Z",
+  "ts": "20260805T164350Z",
   "runner_version": "1.0.0",
   "exec_model": "sonnet",
   "judge_model": "haiku",
-  "git_head": "cb144b2",
-  "content_hash": "b7f9c171a1fdf721457096c4ba6d1d340676fce543dc7739c0ace6457d06edce",
+  "git_head": "ad292c2",
+  "content_hash": "601467d2f9c03e48c51c399b90e0dc8f4124211bd37214515bbdd3371a4c57da",
   "score": {
     "passed": 22,
     "failed": 0,

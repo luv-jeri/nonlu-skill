@@ -1,16 +1,16 @@
 {
-  "ts": "20260711T185137Z",
+  "ts": "20260805T160238Z",
   "runner_version": "1.0.0",
   "exec_model": "sonnet",
   "judge_model": "haiku",
-  "git_head": "9fb9742",
-  "content_hash": "1d4ac8636f8e3f5e3920b6c99595008c04178ed77c652069096de6b59c36442f",
+  "git_head": "ad292c2",
+  "content_hash": "8dd9e2951e7e28b9a18eb41514d39e5f15e48c4cd175a13da746ce6e9439264a",
   "score": {
-    "passed": 16,
-    "failed": 0,
+    "passed": 15,
+    "failed": 1,
     "total": 16
   },
-  "pass_rate": 1.0,
+  "pass_rate": 0.938,
   "evals": [
     {
       "id": "rough-debug",
@@ -20,9 +20,11 @@
     },
     {
       "id": "rough-writing",
-      "passed": 4,
+      "passed": 3,
       "total": 4,
-      "fails": []
+      "fails": [
+        "[judge] No audience, word-count, or tone constraints appear that the user did not imply."
+      ]
     },
     {
       "id": "rough-research",

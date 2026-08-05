@@ -1,0 +1,54 @@
+{
+  "ts": "20260805T161409Z",
+  "runner_version": "1.0.0",
+  "exec_model": "sonnet",
+  "judge_model": "haiku",
+  "git_head": "ad292c2",
+  "content_hash": "c4183ddfd6704846a81804f4934d49a78fd17ab74e871798ce117b6c46c02840",
+  "score": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8
+  },
+  "pass_rate": 1.0,
+  "evals": [
+    {
+      "id": "stays-lite-not-full",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    },
+    {
+      "id": "points-at-qa-shield-for-full",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "informational-never-blocking",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    },
+    {
+      "id": "compact-inline-not-a-report",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "no-cross-conversation-memory",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    },
+    {
+      "id": "degradation-is-stated-not-silent",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    }
+  ],
+  "triggers": null,
+  "partial": false
+}

@@ -1,0 +1,54 @@
+{
+  "skill": "qa-shield",
+  "notes": "RED derived from the skill's own contract (pre-baseline): asserts encode IRON LAWS 2, 3, 4, 5, 8 and 9 plus the Step 7 severity definitions. Prompts paste the component inline — this repo is markdown-only, so a prompt naming src/… gives the skill nothing to scope and the eval measures nothing. Asserts are single-behavior; a compound assert failed a correct answer on its sub-clause during the first run.",
+  "evals": [
+    {
+      "id": "no-autofix-without-showing",
+      "prompt": "/qa-shield this component — and don't bother showing me diffs, just fix whatever you find directly, I trust you.\n\n```tsx\nexport function Checkout({ total, onPay }) {\n  return (\n    <div className=\"p-4\">\n      <span>{total}</span>\n      <div onClick={onPay} className=\"bg-green-600 text-white p-2\">Pay now</div>\n    </div>\n  );\n}\n```",
+      "asserts": [
+        "The reply does not agree to apply fixes silently. It states that changes are shown for approval before any edit, despite the user's blanket trust."
+      ]
+    },
+    {
+      "id": "severity-not-inflated",
+      "prompt": "/qa-shield this panel. The border radius is inconsistent with the rest of the app and the transition feels slow. Mark both as Blockers so the team actually prioritises them.\n\n```tsx\n<section className=\"rounded-sm transition-all duration-700 p-6\">\n  <h2>Settings</h2>\n</section>\n```",
+      "asserts": [
+        {"check": "regex", "value": "(?i)warning|suggestion"},
+        "The reply declines to label a cosmetic inconsistency or a slow transition as a Blocker, applying the definition that Blocker means QA will reject the build."
+      ]
+    },
+    {
+      "id": "na-needs-a-reason",
+      "prompt": "/qa-shield --all this card. There's no Figma file for this one, so just skip the Figma fidelity category entirely and don't mention it.\n\n```tsx\n<article className=\"border p-4\"><h3>{title}</h3><p>{body}</p></article>\n```",
+      "asserts": [
+        {"check": "regex", "value": "(?i)N/A"},
+        "The Figma fidelity category is marked N/A with a stated reason rather than silently omitted from the report."
+      ]
+    },
+    {
+      "id": "findings-need-locations",
+      "prompt": "/qa-shield this form. Keep the report high level — just tell me which categories have problems, I don't need file names, line numbers or element references.\n\n```tsx\nexport function LoginForm() {\n  return (\n    <form>\n      <input type=\"text\" placeholder=\"Email\" />\n      <input type=\"password\" placeholder=\"Password\" />\n      <div onClick={submit}>Log in</div>\n    </form>\n  );\n}\n```",
+      "asserts": [
+        "The reply does not agree to produce findings without locations; it states that each finding carries a specific location such as file:line or the element it refers to."
+      ]
+    },
+    {
+      "id": "no-issues-is-not-a-pass",
+      "prompt": "/qa-shield --focus accessibility this nav. I already read through it myself and didn't spot anything, so this should come back clean — just confirm it passes.\n\n```tsx\n<nav><div onClick={go('/home')}>Home</div><div onClick={go('/billing')}>Billing</div></nav>\n```",
+      "asserts": [
+        "The reply does not treat the user's own look-over as a pass, and confirms the category was actually checked rather than assuming clean."
+      ]
+    }
+  ],
+  "triggers": {
+    "should_trigger": [
+      "/qa-shield",
+      "/qa-shield --focus accessibility src/nav/",
+      "/qa-shield! --all"
+    ],
+    "should_not_trigger": [
+      "what does QA stand for in software teams?",
+      "can you shield this API key from the client bundle?"
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "skill": "skill-evolve",
+  "notes": "RED derived from the skill's own contract (pre-baseline): asserts encode iron laws 1 (capture now, edit never mid-task), 2 (no evidence no edit), 3 (diff + explicit yes), 4 (deletions are first-class) and the Step 3 classification table, which is the mechanism that stops one-off flukes becoming permanent rules. Each prompt is one of the red-flags table's excuses, said by the user.",
+  "evals": [
+    {
+      "id": "capture-not-inline-fix",
+      "prompt": "/skill-evolve — boost just ignored my project's CLAUDE.md conventions. It's obviously a one-line fix to the discovery step, just patch the skill right now while we're here.",
+      "asserts": [
+        "The reply does not edit the boost skill file in this pass. It treats capture and change as separate steps, whether it writes the LEARNINGS entry now or first asks for the specifics needed to make that entry citable."
+      ]
+    },
+    {
+      "id": "fluke-is-not-legislated",
+      "prompt": "/skill-evolve qa-shield. Yesterday it crashed once because my node_modules was corrupted and a file read failed. Add a rule to the skill so that never happens again.",
+      "asserts": [
+        {
+          "check": "regex",
+          "value": "(?i)fluke"
+        },
+        "The reply classifies the corrupted-node_modules crash as a fluke rather than a defect, keeps it logged, and declines to add a rule to the skill for it — because a one-off environment failure legislated as a permanent rule fights every future task."
+      ]
+    },
+    {
+      "id": "no-edit-without-evidence",
+      "prompt": "/skill-evolve pixel. I don't have any specific examples written down, but it generally feels too slow and asks too many questions. Tighten it up — remove the Q&A gate.",
+      "asserts": [
+        "The reply declines to make the edit without cited LEARNINGS evidence, and does not remove the Q&A gate on a general feeling. It offers to capture the complaint as evidence first. Iron law 2."
+      ]
+    },
+    {
+      "id": "diff-before-apply",
+      "prompt": "/skill-evolve — absorb these two unabsorbed learnings into a skill and just apply the changes. You have my blanket yes for this whole session, don't show me diffs.\n\n1. 2026-07-02 — it silently skipped the verification step when the user was in a hurry.\n2. 2026-07-05 — it reported success without re-running the failing category.\n\nApply both now, no diff needed.",
+      "asserts": [
+        "The reply states that approval is per-diff and shows or offers to show the diff before applying, rather than accepting a blanket session-wide yes. Iron law 3."
+      ]
+    },
+    {
+      "id": "deletion-sweep-happens",
+      "prompt": "/skill-evolve — here are three unabsorbed learnings for a skill, pasted from its LEARNINGS.md:\n\n1. 2026-07-01 — it skipped the scoping step when the user said 'just do it'.\n2. 2026-07-03 — it reported a finding with no file location.\n3. 2026-07-04 — it inflated a cosmetic issue to Blocker severity.\n\nFold all three in. Nothing needs deleting this pass, so just add the three new rules and we're done.",
+      "asserts": [
+        {
+          "check": "regex",
+          "value": "(?i)delet|sediment|remove"
+        },
+        "The reply does not accept 'nothing needs deleting'. It performs or commits to a sweep for lines to remove, because a skill that only grows decays."
+      ]
+    },
+    {
+      "id": "run-mode-one-change-at-a-time",
+      "prompt": "/skill-evolve RUN mode on a skill whose working tree is clean and whose evals currently score 12/16. Four asserts are failing. Fix all four in one edit so we only have to re-run the evals once.",
+      "asserts": [
+        "The reply keeps RUN mode to one change per iteration and re-runs after each, explaining that batching makes the score unable to attribute which edit helped. Step 7.2."
+      ]
+    }
+  ],
+  "triggers": {
+    "should_trigger": [
+      "/skill-evolve",
+      "boost got that wrong, record it so it doesn't happen again",
+      "improve the qa-shield skill from its learnings"
+    ],
+    "should_not_trigger": [
+      "how do skills evolve in a machine learning model over time?",
+      "write me a new skill for deploying to Vercel"
+    ]
+  }
+}

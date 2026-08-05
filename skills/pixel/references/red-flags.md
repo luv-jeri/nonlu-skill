@@ -30,6 +30,7 @@ If you catch yourself thinking any of these, STOP and correct course:
 | "I can eyeball the spacing" | Use approximate values | Extract exact values. Pixel-perfect means pixel-perfect |
 | "This is taking too long, let me skip the audit" | Skip final audit | The audit catches what you missed. Never skip it |
 | "The existing code doesn't follow tokens, so I won't either" | Match bad patterns | Use correct tokens. Flag existing tech debt in open questions |
+| "The user already told me to use my judgement, so that question is answered" | Mark the open question RESOLVED and build a guess | A deferral is not a decision. "Use your judgement", "probably just stacks", "whatever looks right", "you decide" leave the question OPEN — record it with the user's leaning noted as a preference, and let the Q&A gate surface it. Iron law 6 is bypassed just as easily through the user's mouth as through your own |
 
 ## DO NOTs
 

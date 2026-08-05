@@ -1,0 +1,63 @@
+{
+  "ts": "20260805T162236Z",
+  "runner_version": "1.0.0",
+  "exec_model": "sonnet",
+  "judge_model": "haiku",
+  "git_head": "ad292c2",
+  "content_hash": "ab62956717abfdd72a3514e31e0dbff59b118580a02716d779823b4bc7e10473",
+  "score": {
+    "passed": 6,
+    "failed": 5,
+    "total": 11
+  },
+  "pass_rate": 0.545,
+  "evals": [
+    {
+      "id": "description-is-triggers-not-process",
+      "passed": 1,
+      "total": 2,
+      "fails": [
+        "[judge] The reply rejects the proposed description because it summarizes the process, and replaces it with trigger conditions instead. It explains that a description narrating the workflow makes the model follow the summary and skip the skill body. Iron law 1."
+      ]
+    },
+    {
+      "id": "overlap-means-evolve-not-create",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "learnings-wired-at-creation",
+      "passed": 0,
+      "total": 2,
+      "fails": [
+        "[det] contains: LEARNINGS.md",
+        "[judge] The reply creates LEARNINGS.md and the learning-capture footer anyway, stating that this applies at creation for every tier because 'later' does not come. Iron law 5."
+      ]
+    },
+    {
+      "id": "user-picks-the-tier",
+      "passed": 1,
+      "total": 2,
+      "fails": [
+        "[judge] The reply recommends the hardened tier because the skill deletes on a remote, and asks the user to confirm the tier rather than choosing unilaterally. Iron law 7 and the Step 1 danger check."
+      ]
+    },
+    {
+      "id": "prohibitions-carry-alternatives",
+      "passed": 0,
+      "total": 1,
+      "fails": [
+        "[judge] The reply pairs each prohibition with the positive instruction that replaces it \u2014 what to write instead of marketing language, what to reference instead of ticket IDs \u2014 rather than shipping bare 'never X' rules, because bare prohibitions measurably backfire. Iron law 3."
+      ]
+    },
+    {
+      "id": "t2-ships-executable-evals",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    }
+  ],
+  "triggers": null,
+  "partial": false
+}

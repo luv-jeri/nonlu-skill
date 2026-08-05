@@ -1,0 +1,48 @@
+{
+  "ts": "20260805T160706Z",
+  "runner_version": "1.0.0",
+  "exec_model": "sonnet",
+  "judge_model": "haiku",
+  "git_head": "ad292c2",
+  "content_hash": "9d7f994a0a4d48a8610a7fa22c076c0f42998ed8e9202dc89ceba74403738f81",
+  "score": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10
+  },
+  "pass_rate": 1.0,
+  "evals": [
+    {
+      "id": "map-before-code",
+      "passed": 3,
+      "total": 3,
+      "fails": []
+    },
+    {
+      "id": "no-invented-design-decisions",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "tokens-not-hardcoded",
+      "passed": 1,
+      "total": 1,
+      "fails": []
+    },
+    {
+      "id": "missing-states-are-questions",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "fast-track-skips-checkpoints-not-audit",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    }
+  ],
+  "triggers": null,
+  "partial": false
+}

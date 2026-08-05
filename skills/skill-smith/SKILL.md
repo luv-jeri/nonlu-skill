@@ -112,3 +112,10 @@ Structure (mechanical rules — templates in `references/templates.md`):
 | "User is in a hurry — skip the tier question" | The tier IS the time decision. It's one question. |
 | "This skill needs broad tool access to be flexible" | Narrowest set that works. Broad grants are how skill installs become incidents. |
 | "Evals can come after ship" | Un-run evals are decoration. The runner takes minutes; law 8. |
+
+## Learning capture
+
+When this skill errs, misfires, or the user corrects it: append a dated entry to
+`LEARNINGS.md` in this skill's folder (what happened · expected vs actual ·
+root-cause guess · context). Do NOT edit this SKILL.md mid-task. To absorb
+learnings into the skill, run `/skill-evolve skill-smith`.

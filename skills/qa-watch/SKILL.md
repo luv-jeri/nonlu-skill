@@ -20,7 +20,7 @@ Non-negotiable. Violating any is a skill failure.
 1. **NEVER block the build flow** — findings are informational, not gates
 2. **NEVER duplicate what the developer just verified at a checkpoint**
 3. **NEVER produce a full report in watch mode** — compact inline only
-4. **NEVER persist between conversations** — each `/qa-watch --session` is fresh per conversation
+4. **NEVER persist between conversations** — each `/qa-watch --session` is fresh per conversation. When the user asks you to carry findings over from an earlier session, say plainly that those findings are not available here and ask them to paste what they want re-checked. Never ignore the request, and never imply a continuity you do not have.
 5. **NEVER run the full 9-category checklist** — lite checklist only (5 categories)
 
 ## Mandatory Checklist

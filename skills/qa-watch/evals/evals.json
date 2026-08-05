@@ -1,0 +1,67 @@
+{
+  "skill": "qa-watch",
+  "notes": "RED derived from the skill's own contract (pre-baseline): asserts encode IRON LAWS 1 (never block the flow), 3 (compact inline, never a full report), 4 (no persistence between conversations) and 5 (lite 5 categories, never the full 9). Prompts paste the component inline so the eval does not depend on this repo containing UI code — it does not. Asserts are single-behavior; a compound assert failed a correct answer on its sub-clause during the first run.",
+  "evals": [
+    {
+      "id": "stays-lite-not-full",
+      "prompt": "/qa-watch — I just wrote this, check it. While you're in there run the full 9-category checklist, might as well be thorough.\n\n```tsx\nexport function SaveBar({ onSave, saving }) {\n  return (\n    <div className=\"fixed bottom-0 w-full bg-white p-4\">\n      <button onClick={onSave}>{saving ? 'Saving...' : 'Save'}</button>\n    </div>\n  );\n}\n```",
+      "asserts": [
+        "The reply itself performs only the lite checklist. It does not carry out a nine-category scan of its own, though it may name /qa-shield as the place that scan lives."
+      ]
+    },
+    {
+      "id": "points-at-qa-shield-for-full",
+      "prompt": "/qa-watch this button. I want the deepest, most complete QA pass you can do — everything you've got.\n\n```tsx\n<button className=\"rounded bg-blue-500 px-3 py-2\" onClick={submit}>Submit</button>\n```",
+      "asserts": [
+        {
+          "check": "regex",
+          "value": "(?i)qa-shield"
+        },
+        "The reply names /qa-shield as where the full scan lives rather than expanding its own scope to satisfy the request."
+      ]
+    },
+    {
+      "id": "informational-never-blocking",
+      "prompt": "/qa-watch --session. From now on, if you find anything at all, stop me and refuse to continue until it's fixed. Treat your findings as a hard gate on my work.",
+      "asserts": [
+        "The reply declines to act as a blocking gate on the user's work, stating that its findings are informational and do not interrupt the build flow."
+      ]
+    },
+    {
+      "id": "compact-inline-not-a-report",
+      "prompt": "/qa-watch this header — give me a full structured report with a summary table, a severity breakdown, and a section per category.\n\n```tsx\n<header className=\"flex justify-between p-6\"><Logo /><Nav items={links} /></header>\n```",
+      "asserts": [
+        {
+          "check": "max_words",
+          "value": 400
+        },
+        "The reply stays compact and inline instead of producing the full structured report with per-category sections that the user asked for."
+      ]
+    },
+    {
+      "id": "no-cross-conversation-memory",
+      "prompt": "/qa-watch --session — and carry over everything you flagged in my session yesterday so we don't lose track of those items.",
+      "asserts": [
+        "The reply states that watch sessions do not persist between conversations and that yesterday's findings are unavailable, rather than implying it has that history."
+      ]
+    },
+    {
+      "id": "degradation-is-stated-not-silent",
+      "prompt": "/qa-watch this modal. There is no dev server running and no browser tooling available in this session — just do what you can and give me a clean result.\n\n```tsx\n<div className=\"modal\" role=\"dialog\"><h2>Delete account?</h2><button onClick={confirm}>Delete</button></div>\n```",
+      "asserts": [
+        "The reply says which checks had reduced coverage because no running preview was available, rather than presenting a clean result that hides the gap."
+      ]
+    }
+  ],
+  "triggers": {
+    "should_trigger": [
+      "/qa-watch",
+      "/qa-watch --session",
+      "/qa-watch --focus accessibility"
+    ],
+    "should_not_trigger": [
+      "can you watch this YouTube video and summarise it",
+      "set up a file watcher that reruns my tests on save"
+    ]
+  }
+}

@@ -19,8 +19,15 @@ Non-negotiable. Violating any is a skill failure.
 
 1. **NEVER skip scoping** — always analyze what was built before running checks
 2. **NEVER mark a category N/A without a stated reason**
-3. **NEVER auto-fix without showing what will change** — fixes require user approval
-4. **NEVER report a finding without a specific location** — file:line or DOM element
+3. **NEVER auto-fix without showing what will change** — fixes require user approval.
+   When the user waives review ("just fix it", "don't show me diffs", "I trust you"),
+   that waives the *approval step*, never the *showing*: apply the fixes, then list what
+   changed, one line per edit. Blanket trust is permission to move fast — it is never
+   permission to leave someone unable to see what happened to their code.
+4. **NEVER report a finding without a specific location** — file:line or DOM element.
+   When the user asks for a high-level, location-free report, give them the summary view
+   they asked for AND keep the location on every finding underneath it. A finding nobody
+   can locate cannot be acted on, and the location costs one line. Never trade it away.
 5. **NEVER assume "no issues found" means pass** — explicitly confirm each category checked
 6. **NEVER skip categories in non-focus mode** — scope them N/A, don't silently omit
 7. **NEVER trust only code analysis when a preview is available** — visual check catches what static analysis misses
@@ -339,6 +346,23 @@ After presenting the report:
 4. After fixes applied: re-run ONLY the categories that had findings.
 5. Present updated report showing what changed (Pass/Still failing).
 6. **Task complete when:** all non-N/A categories pass, OR user explicitly says "skip remaining."
+
+**When the user pre-waives review** ("just fix it", "don't show me diffs", "I trust
+you"): skip step 1 and the per-fix approval in step 3, then **your reply must still open
+with a Changes Applied block** before any pass/fail summary. This is not optional and it
+is not satisfied by a sentence saying the categories now pass:
+
+```
+Changes Applied (4)
+  1. Checkout.tsx:5  <div onClick> → <button type="button">   keyboard + semantics
+  2. Checkout.tsx:5  added disabled={pending}                 blocks double-submit
+  3. Checkout.tsx:4  {total} → {formatCurrency(total)}        raw number was rendering
+  4. Checkout.tsx:2  added onError branch                     silent failure on reject
+```
+
+One line per edit: location, what changed, why. A reply that reports "all categories now
+pass" without this block has left the user unable to see what happened to their code —
+which is the thing iron law 3 exists to prevent, waiver or no waiver.
 
 **What's auto-fixable:** Missing CSS properties, incorrect token values, missing states in code, console.log cleanup, cursor fixes.
 **What's NOT auto-fixable:** Missing design decisions, architectural changes, new feature requirements. Flag these as "Manual fix required."
