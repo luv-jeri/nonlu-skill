@@ -30,6 +30,18 @@ and never invent what it shows.
    or another agent's edits to the same repo, produce one confidently wrong recap — and
    after that every recap becomes decoration. Attribution is baseline-diffed, not assumed.
 
+## Script path (resolve once, then reuse)
+
+This skill ships one script. Resolve its path once at the start of the session and reuse
+that value — the harnesses name their skill directory differently:
+
+```
+RECAP="${CLAUDE_SKILL_DIR:-<this skill's own folder>}/scripts/recap.py"
+```
+
+In Claude Code `CLAUDE_SKILL_DIR` is set for you. In Codex and any other harness,
+substitute the folder this SKILL.md lives in. Every command below is written as `$RECAP`.
+
 ## Step 0 — TodoWrite checklist
 
 Create todos: journal open · log decisions as they happen · materiality check · emit
@@ -38,7 +50,7 @@ capsule · close journal. (Skip the whole list when the turn is trivially non-ma
 ## Step 1 — Open the journal at the first material action
 
 ```
-python3 ${CLAUDE_SKILL_DIR}/scripts/recap.py open --goal "<one line, what this work is for>"
+python3 $RECAP open --goal "<one line, what this work is for>"
 ```
 
 Idempotent — safe to call again; it will not overwrite an open journal. It records a
@@ -50,7 +62,7 @@ Material means the choice affects behaviour, an interface, data, dependencies, s
 or scope. Naming a variable, retrying a command, and reading a file are not material.
 
 ```
-python3 ${CLAUDE_SKILL_DIR}/scripts/recap.py log \
+python3 $RECAP log \
   --chose "<what was chosen>" \
   --why   "<the reason, one clause>" \
   --over  "<the meaningful alternative that was rejected>"
@@ -64,7 +76,7 @@ Do not batch these at the end. Law 2 exists because batching produces fiction.
 ## Step 3 — Materiality check before emitting anything
 
 ```
-python3 ${CLAUDE_SKILL_DIR}/scripts/recap.py facts
+python3 $RECAP facts
 ```
 
 Prints the journal's decisions plus the baseline-diffed changed files. If it reports
@@ -140,7 +152,7 @@ as architecture.
 ## Step 6 — Close the journal
 
 ```
-python3 ${CLAUDE_SKILL_DIR}/scripts/recap.py close
+python3 $RECAP close
 ```
 
 After closing, `/recap` re-reads the archived journal rather than starting a new one.
@@ -203,7 +215,7 @@ defect in this skill, not an acceptable variation.
 
 | File | Load when | Pair with |
 |---|---|---|
-| `scripts/recap.py` | Every run — it owns the journal, facts, format check, gate, and export | Steps 1–6 |
+| `scripts/recap.py` (as `$RECAP`) | Every run — it owns the journal, facts, format check, gate, and export | Steps 1–6 |
 | `template.html` | Only on `/recap --open` | `recap.py export` |
 
 ## Learning capture
