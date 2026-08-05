@@ -15,6 +15,39 @@ Absorbed. Entries are dated; newest first.
 - **Context:** task / project / anything relevant
 -->
 
+### 2026-08-06 — measured coordinates are absolute; CSS offsets are relative
+
+- **What happened:** rebuilding a chat UI from a generated screenshot, every measurement
+  was taken in absolute canvas coordinates (`left:141px` for a heading at x=141). Those
+  numbers were then written straight into CSS as offsets inside a positioned child. The
+  entire conversation column rendered 116px to the right — exactly the width of the rail
+  that preceded it. Same class of error twice more in the same file.
+- **Expected vs actual:** expected measured values to be usable directly. Actual: a
+  measurement is only meaningful with its origin, and CSS changes origin at every
+  positioned ancestor.
+- **Root-cause guess:** `token-extraction.md` covers colour, type and spacing but treats
+  position as if it were a scalar. Candidate fix: require every measured coordinate to be
+  recorded with its origin in the design map (`x=141 abs / x=25 rel to .list`), and
+  convert at write time, not read time.
+- **Context:** `~/Desktop/pixel-real-test/`. Also bitten by `nth-of-type` in the same file:
+  a decorative `<div>` sibling counted as a type match and shifted seven icons down one
+  slot. Both defects were invisible in the CSS and obvious in the render.
+
+### 2026-08-06 — verification lists no text property except size, weight and colour
+
+- **What happened:** an entire meta strip and footer were built in sentence case when the
+  design was uppercase. The 6-point audit passed. `verification.md`'s typography line
+  enumerates font, size, weight, line-height and colour — `text-transform`, letter-spacing
+  and font-variant are absent, so nothing in the process looks at them.
+- **Expected vs actual:** expected the typography check to cover how the text looks.
+  Actual: it covers five named properties and is silent on the rest.
+- **Root-cause guess:** the checklist is a list of properties rather than a rule. Any
+  property not named is unchecked. Candidate fix: name case, letter-spacing and
+  text-transform explicitly, and add a general instruction to compare rendered text
+  appearance rather than only the enumerated properties.
+- **Context:** ATLAS run, same day. Confirmed by measurement after the fix: meta-strip
+  error 3.39 → 1.73, footer 4.64 → 3.93.
+
 ### 2026-08-06 — the final audit structurally cannot catch an omitted element
 
 - **What happened:** on a screenshot-only run, the design map's component inventory
