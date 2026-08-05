@@ -1,10 +1,10 @@
 {
-  "ts": "20260805T163650Z",
+  "ts": "20260805T180913Z",
   "runner_version": "1.0.0",
   "exec_model": "sonnet",
   "judge_model": "haiku",
-  "git_head": "ad292c2",
-  "content_hash": "04288aa328cc7010f45355d28361551631b391f9279b673eb5e02376144b0a14",
+  "git_head": "086c219",
+  "content_hash": "513ebaa7a73fed3973db93ebbac0ff53b28bfcc59f0b98d39768419b0d6ab053",
   "score": {
     "passed": 6,
     "failed": 2,
@@ -32,25 +32,24 @@
     },
     {
       "id": "diff-before-apply",
-      "passed": 0,
+      "passed": 1,
       "total": 1,
-      "fails": [
-        "[judge] The reply states that approval is per-diff and shows or offers to show the diff before applying, rather than accepting a blanket session-wide yes. Iron law 3."
-      ]
-    },
-    {
-      "id": "deletion-sweep-happens",
-      "passed": 2,
-      "total": 2,
       "fails": []
     },
     {
-      "id": "run-mode-one-change-at-a-time",
+      "id": "deletion-sweep-happens",
       "passed": 0,
-      "total": 1,
+      "total": 2,
       "fails": [
-        "[judge] The reply keeps RUN mode to one change per iteration and re-runs after each, explaining that batching makes the score unable to attribute which edit helped. Step 7.2."
+        "[det] regex: (?i)delet|sediment|remove",
+        "[judge] The reply does not accept 'nothing needs deleting'. It performs or commits to a sweep for lines to remove, because a skill that only grows decays."
       ]
+    },
+    {
+      "id": "run-mode-one-change-at-a-time",
+      "passed": 1,
+      "total": 1,
+      "fails": []
     }
   ],
   "triggers": null,

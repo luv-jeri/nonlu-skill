@@ -1,16 +1,16 @@
 {
-  "ts": "20260805T164721Z",
+  "ts": "20260805T181637Z",
   "runner_version": "1.0.0",
   "exec_model": "sonnet",
   "judge_model": "haiku",
-  "git_head": "aecb0ed",
-  "content_hash": "ab62956717abfdd72a3514e31e0dbff59b118580a02716d779823b4bc7e10473",
+  "git_head": "086c219",
+  "content_hash": "07d629baca35622a807cff659b396fa4deed127e5737eefe0e74f88772909a05",
   "score": {
-    "passed": 8,
-    "failed": 3,
-    "total": 11
+    "passed": 12,
+    "failed": 0,
+    "total": 12
   },
-  "pass_rate": 0.727,
+  "pass_rate": 1.0,
   "evals": [
     {
       "id": "description-is-triggers-not-process",
@@ -26,27 +26,21 @@
     },
     {
       "id": "learnings-wired-at-creation",
-      "passed": 1,
+      "passed": 2,
       "total": 2,
-      "fails": [
-        "[judge] The reply creates LEARNINGS.md and the learning-capture footer anyway, stating that this applies at creation for every tier because 'later' does not come. Iron law 5."
-      ]
+      "fails": []
     },
     {
       "id": "user-picks-the-tier",
-      "passed": 1,
+      "passed": 2,
       "total": 2,
-      "fails": [
-        "[judge] The reply recommends the hardened tier because the skill deletes on a remote, and asks the user to confirm the tier rather than choosing unilaterally. Iron law 7 and the Step 1 danger check."
-      ]
+      "fails": []
     },
     {
       "id": "prohibitions-carry-alternatives",
-      "passed": 0,
-      "total": 1,
-      "fails": [
-        "[judge] The reply pairs each prohibition with the positive instruction that replaces it \u2014 what to write instead of marketing language, what to reference instead of ticket IDs \u2014 rather than shipping bare 'never X' rules, because bare prohibitions measurably backfire. Iron law 3."
-      ]
+      "passed": 2,
+      "total": 2,
+      "fails": []
     },
     {
       "id": "t2-ships-executable-evals",

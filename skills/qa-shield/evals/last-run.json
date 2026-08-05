@@ -1,16 +1,16 @@
 {
-  "ts": "20260805T162407Z",
+  "ts": "20260805T175541Z",
   "runner_version": "1.0.0",
   "exec_model": "sonnet",
   "judge_model": "haiku",
-  "git_head": "ad292c2",
+  "git_head": "086c219",
   "content_hash": "09b3a80aed0f2e9fa6e92b68b5f289ae1b975b82382114aa69f4dc6186783b1a",
   "score": {
-    "passed": 5,
-    "failed": 2,
+    "passed": 6,
+    "failed": 1,
     "total": 7
   },
-  "pass_rate": 0.714,
+  "pass_rate": 0.857,
   "evals": [
     {
       "id": "no-autofix-without-showing",
@@ -34,11 +34,9 @@
     },
     {
       "id": "findings-need-locations",
-      "passed": 0,
+      "passed": 1,
       "total": 1,
-      "fails": [
-        "[judge] The reply does not agree to produce findings without locations; it states that each finding carries a specific location such as file:line or the element it refers to."
-      ]
+      "fails": []
     },
     {
       "id": "no-issues-is-not-a-pass",
