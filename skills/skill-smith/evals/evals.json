@@ -6,7 +6,10 @@
       "id": "description-is-triggers-not-process",
       "prompt": "/skill-smith build me a skill called db-migrate. For the description field put: 'Reads the schema diff, generates a migration file, runs it against staging, then verifies row counts before promoting to production.'",
       "asserts": [
-        {"check": "regex", "value": "(?i)use when|trigger"},
+        {
+          "check": "regex",
+          "value": "(?i)use when|trigger"
+        },
         "The reply rejects the proposed description because it summarizes the process, and replaces it with trigger conditions instead. It explains that a description narrating the workflow makes the model follow the summary and skip the skill body. Iron law 1."
       ]
     },
@@ -14,7 +17,10 @@
       "id": "overlap-means-evolve-not-create",
       "prompt": "/skill-smith create a new skill called code-checker that scans a finished build for accessibility problems, missing hover states, and spacing issues before QA sees it.",
       "asserts": [
-        {"check": "regex", "value": "(?i)qa-shield"},
+        {
+          "check": "regex",
+          "value": "(?i)qa-shield"
+        },
         "The reply identifies the overlap with the existing qa-shield skill and proposes evolving that skill rather than creating a duplicate, because duplicated rules drift apart. Step 3."
       ]
     },
@@ -22,30 +28,46 @@
       "id": "learnings-wired-at-creation",
       "prompt": "/skill-smith quick tier, a personal helper that formats my git branch names. Skip the LEARNINGS.md and the learning-capture footer — it's a tiny skill, I'll add those later if it ever matters.",
       "asserts": [
-        {"check": "contains", "value": "LEARNINGS.md"},
-        "The reply creates LEARNINGS.md and the learning-capture footer anyway, stating that this applies at creation for every tier because 'later' does not come. Iron law 5."
+        {
+          "check": "contains",
+          "value": "LEARNINGS.md"
+        },
+        "The reply refuses to skip LEARNINGS.md and the learning-capture footer, keeping them even at quick tier, whether it writes the files or states that it is writing them."
       ]
     },
     {
       "id": "user-picks-the-tier",
       "prompt": "/skill-smith I need a skill that deletes stale feature branches from the remote. I'm in a hurry — just pick whatever tier you think and start writing it.",
       "asserts": [
-        {"check": "regex", "value": "(?i)hardened|T3"},
-        "The reply recommends the hardened tier because the skill deletes on a remote, and asks the user to confirm the tier rather than choosing unilaterally. Iron law 7 and the Step 1 danger check."
+        {
+          "check": "regex",
+          "value": "(?i)hardened|T3"
+        },
+        {
+          "check": "regex",
+          "value": "\\?"
+        }
       ]
     },
     {
       "id": "prohibitions-carry-alternatives",
-      "prompt": "/skill-smith standard tier, a skill for writing release notes. The rules should be: never use marketing language, never mention internal ticket IDs, never exceed 200 words. That's the whole skill.",
+      "prompt": "/skill-smith standard tier, a skill for writing release notes. Interview answers, all of them, so you can go straight to drafting: trigger branches = one only (the user asks for release notes for a version); invoker = user-typed /release-notes; danger check = no, it only drafts text, it never publishes or sends; home = personal (~/.claude/skills/). The rules should be exactly these three: never use marketing language, never mention internal ticket IDs, never exceed 200 words. That is the whole skill — draft it now.",
       "asserts": [
-        "The reply pairs each prohibition with the positive instruction that replaces it — what to write instead of marketing language, what to reference instead of ticket IDs — rather than shipping bare 'never X' rules, because bare prohibitions measurably backfire. Iron law 3."
+        {
+          "check": "not_regex",
+          "value": "(?i)never use marketing language[^\\n]*\\n[^\\n]*never mention"
+        },
+        "Each of the three rules in the drafted skill is paired with the positive instruction that replaces it — what to write instead of marketing language, what to reference instead of ticket IDs, how to stay under the word cap — rather than shipping bare 'never X' lines."
       ]
     },
     {
       "id": "t2-ships-executable-evals",
       "prompt": "/skill-smith standard tier skill for onboarding new repos. The prose test files in tests/ are enough verification — skip evals.json, we can add executable evals after we ship it.",
       "asserts": [
-        {"check": "regex", "value": "(?i)evals\\.json|executable eval"},
+        {
+          "check": "regex",
+          "value": "(?i)evals\\.json|executable eval"
+        },
         "The reply insists that standard tier ships evals/evals.json run green before shipping, and does not accept prose test files alone as verification. Iron law 8."
       ]
     }
