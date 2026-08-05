@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
-This is a Claude Code plugin / Agent Skills package. No application code — only markdown skill files, JSON metadata, and documentation. Six skills ship: `boost`, `pixel`, `qa-shield`, `qa-watch`, `skill-smith`, `skill-evolve`.
+This is a Claude Code plugin / Agent Skills package. No application code — only markdown skill files, JSON metadata, and documentation. Seven skills ship: `boost`, `pixel`, `qa-shield`, `qa-watch`, `skill-smith`, `skill-evolve`, `recap`.
 
 ## Key Rules
 
 - Each skill lives in `skills/<name>/` with a `SKILL.md`, plus optional `references/`, `examples/`, `patterns/`, and `tests/`.
-- SKILL.md frontmatter needs three fields: `name`, `description`, and `user-invokable: true` (all six skills are slash-command invoked).
+- SKILL.md frontmatter needs three fields: `name`, `description`, and `user-invokable: true`. Six skills are slash-command only; `recap` is additionally model-invocable because its end-of-work branch has to fire without being typed (justification recorded in `skills/recap/tests/eval-triggers.md`).
 - Every skill ships with a `LEARNINGS.md` (dated mistake log, appended the moment the skill errs) and a "Learning capture" footer in SKILL.md — `/skill-evolve` absorbs entries into skill edits with human approval. New skills get this wired by `/skill-smith` automatically (its iron law 5).
 - Description field = ONLY trigger conditions ("Use when user invokes /x"), NEVER a process summary. This is the string Claude matches on to fire the skill (Claude Search Optimization); a description that summarizes the process instead of the trigger mis-fires.
 - Each skill MUST create a TodoWrite checklist at start for step tracking.
@@ -80,6 +80,20 @@ Tiered skill creator — T1 quick / T2 standard / T3 hardened; description linte
 - `references/templates.md` — generated-skill skeletons, LEARNINGS.md template, learning-capture footer, tests skeletons
 - `LEARNINGS.md` — its own mistake log
 - `tests/` — eval framework
+
+### Recap (`skills/recap/`) — self-contained pattern
+Closes a unit of work with a visual capsule plus a decision log, emitted in the reply text.
+
+- `SKILL.md` — complete self-contained skill (iron laws, capsule format, glyph vocabulary, materiality rules, journal protocol, gates)
+- `scripts/recap.py` — one script, subcommands: `open` · `log` · `facts` · `check` · `close` · `gate` · `export` · `selftest`
+- `template.html` — fixed HTML shell for `/recap --open`; never generated per run
+- `LEARNINGS.md` — its own mistake log (four defects caught during its own build)
+- `tests/`, `evals/evals.json` — 22 asserts, 18 deterministic
+
+**Why the recap lives in the reply, not in script output:** measured 2026-08-05 — a script
+printed a formatted box to stdout and Claude Code collapsed it to `Ran 2 shell commands`;
+the user saw nothing. Tool stdout is a model channel, not a human channel. Never "fix"
+this skill by moving rendering into a script.
 
 ### Skill Evolve (`skills/skill-evolve/`) — self-contained pattern
 Capture skill mistakes instantly; upgrade skills via classified evidence + approved diff (never silent self-editing).

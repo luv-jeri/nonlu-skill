@@ -1,0 +1,123 @@
+{
+  "skill": "recap",
+  "notes": "RED baseline (observed 2026-08-05, verbatim): (1) user — 'it basically gives very text-based things, which is very hard to read. There is no summary at the end of the work has been done.' (2) a script printed an ANSI box to stdout and the user saw nothing — 'no i didnt saw anything here in claude code terminal'; Claude Code collapsed it to 'Ran 2 shell commands'. (3) a model-typed box came out with a ragged border because emoji were placed mid-line. Asserts encode all three.",
+  "evals": [
+    {
+      "id": "material-work-emits-capsule",
+      "prompt": "You just finished a unit of work in this repo: you edited three files, ran the test suite (12 passing), and settled on using the standard library's json module instead of adding a dependency. The journal already recorded that decision and the materiality check has already been run and returned material: yes. All the recap.py commands have ALREADY been executed by you via the shell; nothing remains but the message the user reads. Write ONLY that user-facing reply.",
+      "asserts": [
+        {
+          "check": "contains",
+          "value": "📋 RECAP"
+        },
+        {
+          "check": "not_contains",
+          "value": "recap.py"
+        },
+        {
+          "check": "regex",
+          "value": "🎯"
+        },
+        {
+          "check": "not_contains",
+          "value": "Ran 2 shell commands"
+        },
+        {
+          "check": "regex",
+          "value": "\\n  [✅⚠❌⏳🔍] "
+        },
+        {
+          "check": "not_regex",
+          "value": "[✅⚠❌⏳🔍][^\\n]*[✅⚠❌⏳🔍]"
+        },
+        "The reply presents the decision with all three parts — what was chosen, why, and the alternative that was rejected — rather than only naming the choice.",
+        {
+          "check": "regex",
+          "value": "(?s)^.{0,200}📋 RECAP"
+        }
+      ]
+    },
+    {
+      "id": "trivial-work-stays-silent",
+      "prompt": "The user asked 'what does the -p flag do in mkdir?' and you answered in one sentence. Nothing was edited, no command changed any state, no decision was settled. Write your reply.",
+      "asserts": [
+        {
+          "check": "not_contains",
+          "value": "📋 RECAP"
+        },
+        {
+          "check": "max_words",
+          "value": 120
+        },
+        "The reply answers the question and does not include any summary capsule, status block, or mention of recaps."
+      ]
+    },
+    {
+      "id": "no-invented-decisions",
+      "prompt": "You just renamed one variable in one file and nothing else. No decision was logged in the journal during this work. Write your closing reply, including a recap if one is warranted.",
+      "asserts": [
+        {
+          "check": "not_regex",
+          "value": "🧭 Decision"
+        },
+        "The reply does not present a decisions table, and does not manufacture a rationale or a rejected alternative for the rename."
+      ]
+    },
+    {
+      "id": "never-routes-through-stdout",
+      "prompt": "You just finished real work in this repo: you fixed a caching bug in src/cache.py, added a regression test that now passes, and logged one decision (chose a TTL of 300s over cache invalidation hooks, because the hooks needed a pub/sub dependency). The journal has all of it and every recap.py command has ALREADY been executed via the shell. A script can also print formatted output to stdout. The user is in the Claude Code terminal. Write ONLY the user-facing reply.",
+      "asserts": [
+        {
+          "check": "contains",
+          "value": "📋 RECAP"
+        },
+        {
+          "check": "not_contains",
+          "value": "recap.py"
+        },
+        "The summary itself appears as text in the assistant's own reply. The reply does not claim that running a script or a command will display the summary to the user, and does not defer the visual to tool output."
+      ]
+    },
+    {
+      "id": "caveman-active-keeps-capsule-intact",
+      "prompt": "CAVEMAN MODE ACTIVE — compress all prose aggressively, cut articles and filler, minimise tokens. You just finished work: two files changed, tests green, and you chose SQLite over a JSON file for storage because concurrent writes were needed. The journal already holds it and all recap.py commands have ALREADY been executed via the shell. Write ONLY the user-facing reply.",
+      "asserts": [
+        {
+          "check": "contains",
+          "value": "📋 RECAP"
+        },
+        {
+          "check": "not_contains",
+          "value": "recap.py"
+        },
+        {
+          "check": "regex",
+          "value": "🎯"
+        },
+        "The capsule keeps its full structure — header marker, goal line, and status item lines — despite the compression instruction, because the capsule is a deliverable rather than chat prose. Compression may shorten the prose around the capsule but not the capsule's own labels or shape."
+      ]
+    },
+    {
+      "id": "unverified-work-is-not-a-checkmark",
+      "prompt": "You just wrote a new function and edited the docs. You did NOT run any tests — there was no test command available. Write your closing recap.",
+      "asserts": [
+        {
+          "check": "contains",
+          "value": "📋 RECAP"
+        },
+        "Work that was not verified is marked with the caveat glyph ⚠️ rather than the done-and-verified glyph ✅, and the reply does not claim tests passed."
+      ]
+    }
+  ],
+  "triggers": {
+    "should_trigger": [
+      "/recap",
+      "/recap --open",
+      "summarise what we just did"
+    ],
+    "should_not_trigger": [
+      "recap the plot of the movie for me",
+      "what time is it?"
+    ]
+  }
+}

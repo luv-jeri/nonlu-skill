@@ -47,6 +47,7 @@
 | :eyes: | **QA Watch** | `/qa-watch` | Lightweight QA companion that checks for issues as you build |
 | :hammer: | **Skill Smith** | `/skill-smith` | Creates new skills with the right ceremony — quick, standard, or hardened tier |
 | :seedling: | **Skill Evolve** | `/skill-evolve` | Captures a skill's mistakes and upgrades the skill with proof, never silently |
+| :clipboard: | **Recap** | `/recap` | Closes a unit of work with a visual capsule and a decision log instead of a wall of text |
 
 <br/>
 

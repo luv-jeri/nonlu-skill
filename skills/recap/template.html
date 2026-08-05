@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!-- Fixed template. recap.py export replaces the /*RECAP_DATA*/null token with the
+     session journal as JSON. No HTML is ever generated token-by-token by a model. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recap</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a23; --line: #262b38;
+    --ink: #e6e9f0; --dim: #8b93a7; --accent: #6ea8fe;
+    --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f7f8fa; --panel:#fff; --line:#e3e6ec; --ink:#1b1f2a; --dim:#5c6478; --accent:#2563eb; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2.5rem 1.25rem; background:var(--bg); color:var(--ink);
+         font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width: 860px; margin: 0 auto; }
+  h1 { font-size:1.5rem; margin:0 0 .25rem; letter-spacing:-.01em; }
+  .meta { color:var(--dim); font-size:.85rem; margin-bottom:2rem; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+          padding:1.25rem 1.4rem; margin-bottom:1.25rem; }
+  .card h2 { font-size:.78rem; text-transform:uppercase; letter-spacing:.09em;
+             color:var(--dim); margin:0 0 .9rem; font-weight:600; }
+  ul { margin:0; padding-left:1.1rem; }
+  li { margin:.3rem 0; }
+  code { font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+         background:rgba(127,127,127,.14); padding:.12em .4em; border-radius:4px; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  th { text-align:left; color:var(--dim); font-weight:600; font-size:.78rem;
+       text-transform:uppercase; letter-spacing:.06em; padding:.4rem .6rem; }
+  td { padding:.6rem; border-top:1px solid var(--line); vertical-align:top; }
+  td.n { color:var(--dim); width:2rem; }
+  .over { color:var(--dim); }
+  .empty { color:var(--dim); font-style:italic; }
+  .goal { font-size:1.05rem; }
+  .pill { display:inline-block; background:rgba(110,168,254,.14); color:var(--accent);
+          border-radius:999px; padding:.1rem .6rem; font-size:.78rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="goal">Recap</h1>
+  <div class="meta" id="meta"></div>
+  <div id="body"></div>
+</main>
+<script>
+const DATA = /*RECAP_DATA*/null;
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+
+function card(title, inner) {
+  return `<div class="card"><h2>${esc(title)}</h2>${inner}</div>`;
+}
+
+function render(d) {
+  if (!d) {
+    document.getElementById("body").innerHTML =
+      `<div class="card"><span class="empty">No journal data. Run recap.py export from a session that recorded work.</span></div>`;
+    return;
+  }
+  document.getElementById("goal").textContent = d.goal || "Recap";
+  document.getElementById("meta").innerHTML =
+    `<span class="pill">${esc(d.repo)}</span> &nbsp; session ${esc(d.session)} &nbsp;·&nbsp; ${esc(d.generated)}`;
+
+  const files = (d.files || []).length
+    ? `<ul>${d.files.map(f => `<li><code>${esc(f)}</code></li>`).join("")}</ul>`
+    : `<span class="empty">No files changed in this session.</span>`;
+
+  const decisions = (d.decisions || []).length
+    ? `<table><tr><th></th><th>Decision</th><th>Why</th><th>Rejected</th></tr>` +
+      d.decisions.map((x, i) =>
+        `<tr><td class="n">${i + 1}</td><td>${esc(x.chose)}</td><td>${esc(x.why)}</td>` +
+        `<td class="over">${esc(x.over) || "&mdash;"}</td></tr>`).join("") + `</table>`
+    : `<span class="empty">No decisions logged.</span>`;
+
+  let html = card("Changed files", files) + card("Decisions", decisions);
+  if ((d.impacts || []).length) {
+    html += card("Architecture impact",
+      `<ul>${d.impacts.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`);
+  }
+  document.getElementById("body").innerHTML = html;
+}
+
+render(DATA);
+</script>
+</body>
+</html>

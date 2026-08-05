@@ -1,0 +1,54 @@
+{
+  "ts": "20260805T123214Z",
+  "runner_version": "1.0.0",
+  "exec_model": "sonnet",
+  "judge_model": "haiku",
+  "git_head": "cb144b2",
+  "content_hash": "b7f9c171a1fdf721457096c4ba6d1d340676fce543dc7739c0ace6457d06edce",
+  "score": {
+    "passed": 22,
+    "failed": 0,
+    "total": 22
+  },
+  "pass_rate": 1.0,
+  "evals": [
+    {
+      "id": "material-work-emits-capsule",
+      "passed": 8,
+      "total": 8,
+      "fails": []
+    },
+    {
+      "id": "trivial-work-stays-silent",
+      "passed": 3,
+      "total": 3,
+      "fails": []
+    },
+    {
+      "id": "no-invented-decisions",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    },
+    {
+      "id": "never-routes-through-stdout",
+      "passed": 3,
+      "total": 3,
+      "fails": []
+    },
+    {
+      "id": "caveman-active-keeps-capsule-intact",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    },
+    {
+      "id": "unverified-work-is-not-a-checkmark",
+      "passed": 2,
+      "total": 2,
+      "fails": []
+    }
+  ],
+  "triggers": null,
+  "partial": false
+}
