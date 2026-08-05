@@ -111,11 +111,39 @@ def extract_gray(video, fps=None):
 
 # ------------------------------------------------------------- event finding
 
+def classify_clip(d):
+    """'discrete' (UI: still frames + transitions) or 'continuous' (cinematic).
+
+    The event finder below derives its noise floor from the MEDIAN frame-to-frame
+    change, which is correct only when most frames are still. In a continuously
+    moving shot — a camera flythrough, a looping background, a video hero — every
+    frame differs from the last, so the median IS the motion, the threshold lands
+    above it, and the tool reports "nothing moved". That is confidently wrong in
+    the dangerous direction.
+
+    Measured 2026-08-06 on two real clips:
+        UI recording   76% still frames, peak/floor ratio 2.7e6
+        camera flight   0% still frames, peak/floor ratio 3.6
+    Six orders of magnitude apart, so the split is safe.
+    """
+    still = float((d < 0.35).mean())
+    floor = float(np.percentile(d, 10))
+    peak = float(np.percentile(d, 90))
+    ratio = peak / max(floor, 1e-6)
+    return "discrete" if (still >= 0.05 or ratio >= 100) else "continuous"
+
+
 def find_events(gray, fps):
-    """Runs of frames where the picture is changing. One run = one animation."""
+    """Runs of frames where the picture is changing. One run = one animation.
+
+    Returns [] for a continuous clip BY DESIGN — there are no discrete events in
+    one. Callers must check clip_kind() first and not read [] as "no motion".
+    """
     if len(gray) < 3:
         return []
     d = np.abs(np.diff(gray, axis=0)).mean(axis=(1, 2))
+    if classify_clip(d) == "continuous":
+        return []
     # Most frames of a UI recording are dead still, so the median IS the noise
     # floor. Scaling it beats a fixed constant across codecs and compression.
     floor = float(np.median(d))
@@ -299,10 +327,19 @@ def cmd_probe(a):
 
 def cmd_events(a):
     gray, fps, info = extract_gray(a.video, a.fps)
+    d = np.abs(np.diff(gray, axis=0)).mean(axis=(1, 2))
+    kind = classify_clip(d)
     ev = find_events(gray, fps)
     sx = info["width"] / gray.shape[2]
-    print(f"{info['width']}x{info['height']} @ {fps:.1f}fps analysed  ->  "
-          f"{len(ev)} motion event(s)\n")
+    print(f"{info['width']}x{info['height']} @ {fps:.1f}fps   clip type: {kind.upper()}")
+    if kind == "continuous":
+        print(f"\nThis is a CONTINUOUSLY MOVING shot — {100*(d < 0.35).mean():.0f}% still "
+              f"frames. It has no discrete UI transitions to time, so the event\n"
+              f"table does not apply. Run instead:\n\n"
+              f"    motion.py camera {a.video}\n\n"
+              f"and read references/video-input.md 'Continuous shots' before building.")
+        return
+    print(f"->  {len(ev)} motion event(s)\n")
     if not ev:
         print("Nothing moved. If you expected motion, the recording may have "
               "missed it — re-record, do not assume the animation is absent.")
@@ -377,6 +414,95 @@ def cmd_compare(a):
     sys.exit(0 if (len(ea) == len(eb) and worst <= max(round(2000/min(fa, fb)), 34)) else 1)
 
 
+def dominant_motion(a_frame, b_frame):
+    """Is the camera pushing IN, or panning? Residual after each candidate move.
+
+    Deliberately crude — three hypotheses, whichever leaves the least residual
+    wins. Enough to answer "what kind of camera move is this", which is what you
+    need to rebuild it. Not optical flow, and does not claim to be.
+    """
+    h, w = a_frame.shape
+    cy, cx = h // 2, w // 2
+    m = 12  # margin so shifted comparisons stay in bounds
+    base = a_frame[m:h - m, m:w - m]
+    trials = {"static": float(np.abs(base - b_frame[m:h - m, m:w - m]).mean())}
+    for name, dy, dx in [("pan-left", 0, -4), ("pan-right", 0, 4),
+                         ("tilt-up", -4, 0), ("tilt-down", 4, 0)]:
+        shifted = b_frame[m + dy:h - m + dy, m + dx:w - m + dx]
+        trials[name] = float(np.abs(base - shifted).mean())
+    # push-in: crop b's centre and rescale to compare against a
+    z = 0.96
+    zh, zw = int(h * z), int(w * z)
+    y0, x0 = (h - zh) // 2, (w - zw) // 2
+    crop = b_frame[y0:y0 + zh, x0:x0 + zw]
+    im = Image.fromarray(crop.astype(np.uint8)).resize((w, h))
+    trials["push-in"] = float(np.abs(base - np.asarray(im, dtype=np.float32)[m:h - m, m:w - m]).mean())
+    best = min(trials, key=trials.get)
+    return best, trials
+
+
+def cmd_camera(a):
+    """Describe a continuously-moving shot well enough to rebuild it."""
+    gray, fps, info = extract_gray(a.video, a.fps)
+    d = np.abs(np.diff(gray, axis=0)).mean(axis=(1, 2))
+    kind = classify_clip(d)
+    n = len(gray)
+    dur = n / fps
+    print(f"{info['width']}x{info['height']} @ {fps:.1f}fps   {dur:.2f}s   "
+          f"{n} frames   clip type: {kind.upper()}")
+    if kind == "discrete":
+        print("\nThis clip has still frames and discrete transitions — use "
+              "`motion.py events` instead.")
+        return
+
+    # Velocity profile: is the move constant, or does it ease?
+    seg = 8
+    chunks = np.array_split(d, seg)
+    speeds = [float(c.mean()) for c in chunks]
+    mx = max(speeds) or 1.0
+    print("\nCAMERA SPEED over the shot (bar = relative rate of change)")
+    for i, s in enumerate(speeds):
+        t0, t1 = i * dur / seg, (i + 1) * dur / seg
+        print(f"  {t0:5.2f}-{t1:5.2f}s  {'#' * max(1, round(28 * s / mx)):<28} {s:6.2f}")
+    first, last = speeds[0], speeds[-1]
+    spread = (max(speeds) - min(speeds)) / mx
+    if spread < 0.18:
+        verdict = "CONSTANT — linear scrub. No easing to reproduce."
+    elif last < first * 0.75:
+        verdict = "DECELERATING — ease-out. Camera settles at the end."
+    elif first < last * 0.75:
+        verdict = "ACCELERATING — ease-in. Camera builds speed."
+    else:
+        verdict = "VARIABLE — speed changes mid-shot; scrub, do not re-time."
+    print(f"\n  verdict: {verdict}")
+
+    # What kind of move?
+    votes = {}
+    for i in range(0, n - 1, max(1, n // 12)):
+        b, _ = dominant_motion(gray[i], gray[i + 1])
+        votes[b] = votes.get(b, 0) + 1
+    order = sorted(votes.items(), key=lambda kv: -kv[1])
+    print(f"\nDOMINANT MOVE: {order[0][0]}   (votes: "
+          f"{', '.join(f'{k} {v}' for k, v in order)})")
+
+    # Does it loop? Compare the last frame to the first.
+    seam = float(np.abs(gray[-1] - gray[0]).mean())
+    mid = float(np.abs(gray[n // 2] - gray[0]).mean()) or 1.0
+    print(f"\nLOOP SEAM: last-vs-first difference {seam:.2f} "
+          f"(mid-vs-first {mid:.2f}, ratio {seam/mid:.2f})")
+    print("  " + ("loops cleanly — safe to repeat seamlessly" if seam < mid * 0.35
+                  else "does NOT loop — a repeat will visibly jump. Fade, "
+                       "ping-pong, or end the scroll here."))
+
+    print(f"\nBUDGET REALITY")
+    sz = pathlib.Path(a.video).stat().st_size / 1024
+    print(f"  this file            {sz:>8.0f} kb")
+    print(f"  a 60fps code rebuild {'':>8}   typically 20-80 kb")
+    print(f"  frame sequence @ 1x  {'':>8}   ~{n * 45:>6} kb as webp stills")
+    print("\n  Shipping the video is the fast build and the slow page. Read "
+          "references/video-input.md 'Continuous shots' for the trade.")
+
+
 def cmd_keyframes(a):
     """Write the handful of frames worth looking at. Prints paths, not images."""
     need_ffmpeg()
@@ -446,6 +572,20 @@ def cmd_selftest(_):
     if find_events(np.full((30, 40, 60), 120.0, dtype=np.float32), 30.0):
         fails.append("found motion in a completely static clip")
 
+    # 6. clip classifier: it must tell a UI recording from a cinematic shot.
+    #    Regression guard for the 2026-08-06 defect where a 10s camera flythrough
+    #    was reported as "nothing moved".
+    ui = np.array([0.0] * 80 + [3.0] * 12 + [0.0] * 60)          # still, burst, still
+    cine = np.linspace(8.0, 14.0, 150) + np.random.default_rng(7).normal(0, .4, 150)
+    if classify_clip(ui) != "discrete":
+        fails.append("UI-style diff signal misread as continuous")
+    if classify_clip(cine) != "continuous":
+        fails.append("continuous camera motion misread as discrete — the exact "
+                     "2026-08-06 'nothing moved' bug")
+    if find_events(np.stack([np.full((30, 40), 40.0 + 3 * i, dtype=np.float32)
+                             for i in range(40)]), 24.0):
+        fails.append("continuous clip produced discrete events")
+
     if fails:
         print("SELFTEST FAILED")
         for f in fails:
@@ -470,6 +610,8 @@ def main():
     p.set_defaults(fn=cmd_measure)
     p = sub.add_parser("compare"); p.add_argument("target"); p.add_argument("rebuild")
     p.add_argument("--fps", type=float); p.set_defaults(fn=cmd_compare)
+    p = sub.add_parser("camera"); p.add_argument("video")
+    p.add_argument("--fps", type=float); p.set_defaults(fn=cmd_camera)
     p = sub.add_parser("keyframes"); p.add_argument("video")
     p.add_argument("--out", required=True); p.add_argument("--fps", type=float)
     p.set_defaults(fn=cmd_keyframes)

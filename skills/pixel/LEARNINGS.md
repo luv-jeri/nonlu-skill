@@ -15,6 +15,28 @@ Absorbed. Entries are dated; newest first.
 - **Context:** task / project / anything relevant
 -->
 
+### 2026-08-06 — "nothing moved" on a video that never stops moving
+
+- **What happened:** given a 10s cinematic camera flythrough, `motion.py events`
+  reported **0 motion events** and printed "Nothing moved." Confidently wrong, in the
+  dangerous direction — a user who trusted it would conclude the clip was static.
+- **Expected vs actual:** expected the continuous camera move to be described. Got a
+  denial that any motion existed.
+- **Root cause (confirmed by measurement, not guessed):** the event finder derives its
+  noise floor from the MEDIAN frame-to-frame change. That is correct only when most
+  frames are still. Measured on two real clips — UI recording: 76% still frames,
+  peak/floor ratio 2.7e6. Camera flythrough: **0% still frames, ratio 3.6.** With no
+  quiet baseline the median IS the motion, so the threshold lands above every frame.
+- **Fixed:** `classify_clip()` splits discrete from continuous (six orders of magnitude
+  apart, so the split is safe); `events` now names the clip type and routes continuous
+  shots to a new `camera` subcommand reporting speed profile, dominant move, loop seam
+  and byte trade-off. Selftest gained a regression guard for exactly this case.
+- **The general lesson, worth carrying beyond this skill:** a threshold derived from the
+  data it is thresholding silently inverts when the data's shape changes. It does not
+  error — it returns a confident wrong answer.
+- **Context:** underwater cinematic supplied 2026-08-06; artefacts in
+  `~/Desktop/underwater-test/`.
+
 ### 2026-08-06 — measured coordinates are absolute; CSS offsets are relative
 
 - **What happened:** rebuilding a chat UI from a generated screenshot, every measurement
