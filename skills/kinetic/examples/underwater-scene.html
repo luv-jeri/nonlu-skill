@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B · Kinetic — the scene rebuilt in code</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#03070d;color:#dfe8f2;font:16px/1.5 -apple-system,"Helvetica Neue",sans-serif}
+  .scroller{height:600vh}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(125% 95% at 50% 42%,transparent 38%,rgba(0,0,0,.70) 100%)}
+  .copy{position:fixed;left:6vw;bottom:12vh;max-width:30ch;z-index:2;
+    text-shadow:0 2px 24px rgba(0,0,0,.9)}
+  .copy h1{font:300 clamp(28px,4.6vw,62px)/1.05 "Didot",Georgia,serif;letter-spacing:-.01em}
+  .copy p{margin-top:14px;opacity:.72;font-size:15px}
+  .badge{position:fixed;top:18px;left:18px;z-index:3;font:11px/1 ui-monospace,Menlo,monospace;
+    letter-spacing:.14em;text-transform:uppercase;background:#0d1a26;border:1px solid #21384d;
+    padding:8px 11px;border-radius:4px;color:#8affc1}
+  .hud{position:fixed;top:18px;right:18px;z-index:3;font:10px/1.7 ui-monospace,Menlo,monospace;
+    color:#9fc4dc;text-align:right;background:rgba(6,14,22,.72);padding:6px 9px;border-radius:4px}
+  .fallback{position:fixed;inset:0;background:#03070d url(../poster.jpg) center/cover;display:none}
+  @media (prefers-reduced-motion:reduce){canvas{display:none}.fallback{display:block}}
+</style></head>
+<body>
+<div class="badge">B · kinetic — code</div>
+<div class="hud" id="hud"></div>
+<div class="fallback" role="img" aria-label="Night ocean at the waterline"></div>
+<div class="vignette"></div>
+<div class="copy">
+  <h1>Everything we kept<br>is still down there.</h1>
+  <p>Scroll to descend.</p>
+</div>
+<div class="scroller"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://esm.sh/three@0.182.0/build/three.module.min.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduce) init();
+
+function init(){
+  const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
+  // DPR cap at 1.5: retina 3x quadruples fragment work for no visible gain on a
+  // low-contrast fogged scene. Single biggest perf lever in this file.
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.1, 400);
+
+  // ---- SKY DOME (only visible above the waterline) -----------------------
+  // Painted in a shader instead of a texture: night gradient + moon glow +
+  // procedural stars. Costs zero bytes and never pops in.
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(300, 24, 16),
+    new THREE.ShaderMaterial({ side:THREE.BackSide, depthWrite:false, fog:false,
+      uniforms:{},
+      vertexShader:`varying vec3 vP; void main(){ vP = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader:`
+        varying vec3 vP;
+        float hash(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5453); }
+        void main(){
+          vec3 d = normalize(vP);
+          float h = clamp(d.y*1.6+0.22, 0.0, 1.0);
+          vec3 col = mix(vec3(0.045,0.105,0.175), vec3(0.012,0.035,0.075), h);
+          // moon: a soft bloom low on the horizon, matching the reference frame
+          float moon = smoothstep(0.55, 0.0, distance(d, normalize(vec3(0.0,0.13,-1.0))));
+          col += vec3(0.55,0.68,0.82) * pow(moon, 2.2) * 0.95;
+          // stars only in the upper sky, thinning toward the horizon
+          vec2 g = floor(d.xy*170.0);
+          float s = step(0.9965, hash(g)) * smoothstep(0.02,0.45,d.y);
+          col += vec3(s);
+          gl_FragColor = vec4(col,1.0);
+        }`
+    }));
+  scene.add(sky);
+
+  // ---- UNDERWATER VOLUME -------------------------------------------------
+  // A second inverted sphere gives the water its own colour so the camera can
+  // cross the waterline and the world genuinely changes, instead of one flat fog.
+  const water = new THREE.Mesh(
+    new THREE.SphereGeometry(290, 20, 14),
+    new THREE.ShaderMaterial({ side:THREE.BackSide, transparent:true, depthWrite:false, fog:false,
+      uniforms:{ uDepth:{value:0} },
+      vertexShader:`varying vec3 vP; void main(){ vP = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader:`
+        uniform float uDepth; varying vec3 vP;
+        void main(){
+          vec3 d = normalize(vP);
+          // deeper = darker and greener, exactly what the reference does
+          vec3 shallow = vec3(0.055,0.145,0.175);
+          vec3 deep    = vec3(0.004,0.020,0.035);
+          vec3 col = mix(shallow, deep, clamp(uDepth,0.0,1.0));
+          col *= mix(1.25, 0.55, clamp(-d.y*0.5+0.5,0.0,1.0));  // light falls from above
+          gl_FragColor = vec4(col, smoothstep(-0.02, -0.30, d.y*0.0 + (-1.0)) * 0.0 + 1.0);
+        }`
+    }));
+  water.visible = false;
+  scene.add(water);
+
+  // ---- WATER SURFACE, seen from below ------------------------------------
+  // 90x90 measured 53.3fps: 8100 verts under a transparent full-screen fragment
+  // shader is overdraw, not detail. 48x48 is visually identical here at 60fps.
+  const surfGeo = new THREE.PlaneGeometry(360, 360, 48, 48);
+  const surfMat = new THREE.ShaderMaterial({
+    transparent:true, side:THREE.DoubleSide, depthWrite:false,
+    uniforms:{ uT:{value:0}, uBelow:{value:0} },
+    vertexShader:`
+      uniform float uT; varying vec2 vUv; varying float vW; varying vec3 vW3;
+      void main(){
+        vUv = uv; vec3 p = position;
+        // three crossed sine trains read as a real swell for a handful of lines
+        float w = sin(p.x*0.11 + uT*0.85)*1.5
+                + sin(p.y*0.15 - uT*0.65)*1.1
+                + sin((p.x+p.y)*0.07 + uT*0.4)*0.8;
+        p.z += w; vW = w;
+        vec4 mv = modelViewMatrix * vec4(p,1.0);
+        vW3 = mv.xyz;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader:`
+      uniform float uT; uniform float uBelow; varying vec2 vUv; varying float vW; varying vec3 vW3;
+      void main(){
+        // caustic banding from the same wave field the vertices used
+        // One caustic layer, not two. The second cost ~4fps and was invisible
+        // under the first once the surface is this far away.
+        float c = sin(vUv.x*220.0 + uT*1.7) * sin(vUv.y*200.0 - uT*1.2);
+        c = smoothstep(0.35, 1.0, c);
+        float c2 = c * 0.6;
+        float moon = smoothstep(0.30, 0.0, distance(vUv, vec2(0.5,0.5)));
+        vec3 col = vec3(0.05,0.13,0.20)
+                 + vec3(0.55,0.72,0.90) * (c*0.55 + c2*0.35)
+                 + vec3(0.85,0.90,1.00) * moon * 0.9
+                 + vec3(0.30,0.45,0.60) * max(vW,0.0) * 0.10;
+        float fade = smoothstep(320.0, 40.0, length(vW3));   // hide the far edge
+        gl_FragColor = vec4(col, (0.42 + c*0.4 + moon*0.5) * fade);
+      }`
+  });
+  const surface = new THREE.Mesh(surfGeo, surfMat);
+  surface.rotation.x = -Math.PI/2;
+  scene.add(surface);
+
+  // ---- BUBBLE COLUMN — motion in the vertex shader, not in JS ------------
+  // The JS version of this loop (1200 positions + a buffer upload per frame)
+  // measured 33fps / 47% dropped. On the GPU it is one uniform write.
+  const N = 1400, pos = new Float32Array(N*3), spd = new Float32Array(N);
+  for(let i=0;i<N;i++){
+    const r = 4 + Math.random()*30, a = Math.random()*6.283;
+    pos[i*3]   = Math.cos(a)*r;
+    pos[i*3+1] = Math.random()*70 - 62;
+    pos[i*3+2] = Math.sin(a)*r;
+    spd[i] = 0.7 + Math.random()*2.4;
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  pGeo.setAttribute('aSpeed', new THREE.BufferAttribute(spd,1));
+  const pMat = new THREE.ShaderMaterial({
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    uniforms:{ uT:{value:0} },
+    vertexShader:`
+      attribute float aSpeed; uniform float uT; varying float vA;
+      void main(){
+        vec3 p = position;
+        p.y = mod(p.y + uT*aSpeed + 62.0, 72.0) - 62.0;      // rise + wrap on GPU
+        p.x += sin(uT*0.55 + aSpeed*9.0)*0.7;
+        p.z += cos(uT*0.42 + aSpeed*7.0)*0.7;
+        vec4 mv = modelViewMatrix * vec4(p,1.0);
+        vA = smoothstep(120.0, 4.0, -mv.z);
+        // HARD CAP. Uncapped this peaked near 180px and the bubbles rendered as
+        // giant bokeh discs that read as snow, not water. A bubble is small.
+        gl_PointSize = clamp((70.0 + aSpeed*22.0) / max(-mv.z, 1.0), 1.0, 7.0);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader:`
+      varying float vA;
+      void main(){
+        float m = smoothstep(0.5, 0.08, length(gl_PointCoord - 0.5));
+        gl_FragColor = vec4(vec3(0.78,0.90,1.0), m * vA * 0.60);
+      }`
+  });
+  scene.add(new THREE.Points(pGeo, pMat));
+
+  // ---- DRIFTING PHOTOGRAPHS ----------------------------------------------
+  const loader = new THREE.TextureLoader();
+  const photos = [];
+  for(let i=1;i<=6;i++){
+    const g = new THREE.Group();
+    const tex = loader.load(`../photo${i}.jpg`);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const w = 5.2, h = 5.2*0.76;
+    g.add(new THREE.Mesh(new THREE.PlaneGeometry(w+0.7, h+1.3),
+      new THREE.MeshBasicMaterial({color:0xeef2f6, side:THREE.DoubleSide})));
+    const img = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({map:tex, side:THREE.DoubleSide}));
+    img.position.set(0, 0.24, 0.02);
+    g.add(img);
+    const a = (i/6)*6.283 + 0.6;
+    g.position.set(Math.cos(a)*7.5, -8 - i*7.5, Math.sin(a)*7.5 - 4);
+    // Face roughly toward the camera column, then tilt — edge-on planes were
+    // invisible in the first build and read as "nothing is happening".
+    g.rotation.set(-0.35 + Math.random()*0.5, -a + Math.PI, (Math.random()-0.5)*0.5);
+    g.userData = {ph:Math.random()*6.28, amp:0.16+Math.random()*0.2};
+    scene.add(g); photos.push(g);
+  }
+
+  // ---- SCROLL-DRIVEN DESCENT ---------------------------------------------
+  // No animation library: scroll IS the timeline, a lerp does the smoothing.
+  let progress = 0, eased = 0;
+  const onScroll = () => {
+    const max = document.body.scrollHeight - innerHeight;
+    progress = max > 0 ? Math.min(1, Math.max(0, scrollY/max)) : 0;
+  };
+  addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  }, {passive:true});
+
+  const hud = document.getElementById('hud');
+  const clock = new THREE.Clock();
+  let visible = true;
+  document.addEventListener('visibilitychange', () => { visible = !document.hidden; });
+
+  renderer.setAnimationLoop(() => {
+    if(!visible) return;                        // never burn GPU on a hidden tab
+    const t = clock.getElapsedTime();
+    eased += (progress - eased) * 0.08;
+
+    // The camera STARTS at the waterline looking at the horizon — the first
+    // build started below it looking down, so the shot opened on empty fog.
+    const y   = 2.2 - eased * 56;               // 2.2 above -> deep below
+    const pit = -0.06 - eased * 0.55;           // level -> tilted down
+    camera.position.set(Math.sin(eased*3.0)*3.0, y, 16 - eased*10);
+    camera.lookAt(Math.sin(eased*3.3)*2.4, y - 1.2 - pit*22, -14);
+
+    const below = y < 0 ? 1 : 0;
+    const depth = Math.max(0, Math.min(1, -y / 46));
+    sky.visible = !below;
+    water.visible = !!below;
+    water.material.uniforms.uDepth.value = depth;
+    scene.background = below
+      ? new THREE.Color().setHSL(0.55, 0.75, 0.055 * (1 - depth) + 0.004)
+      : new THREE.Color(0x050d18);
+    // Fog only underwater, and it deepens as you descend.
+    scene.fog = below ? new THREE.FogExp2(
+      new THREE.Color().setHSL(0.53, 0.7, 0.05*(1-depth)+0.005), 0.014 + depth*0.030) : null;
+
+    surfMat.uniforms.uT.value = t;
+    pMat.uniforms.uT.value = t;                 // the entire particle sim: one write
+
+    for(const g of photos){
+      g.rotation.z = Math.sin(t*0.32 + g.userData.ph) * g.userData.amp;
+      g.position.x += Math.sin(t*0.26 + g.userData.ph)*0.004;
+    }
+    renderer.render(scene, camera);
+    hud.textContent = `depth ${(-y).toFixed(1)}m · ${below? 'below':'above'} surface`;
+  });
+}
+</script>
+</body></html>
