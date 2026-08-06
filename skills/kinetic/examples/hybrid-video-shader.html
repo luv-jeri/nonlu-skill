@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C · Hybrid — real footage as a GPU texture, shader on top</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#03070d;color:#e6eef7;font:16px/1.5 -apple-system,"Helvetica Neue",sans-serif}
+  .scroller{height:620vh}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .copy{position:fixed;left:6vw;bottom:13vh;max-width:32ch;z-index:2;
+    text-shadow:0 2px 30px rgba(0,0,0,.95)}
+  .copy h1{font:300 clamp(30px,5vw,68px)/1.02 "Didot",Georgia,serif;letter-spacing:-.015em}
+  .copy p{margin-top:16px;opacity:.7;font-size:15px;letter-spacing:.01em}
+  .badge{position:fixed;top:18px;left:18px;z-index:3;font:11px/1 ui-monospace,Menlo,monospace;
+    letter-spacing:.14em;text-transform:uppercase;background:#0d1a26;border:1px solid #21384d;
+    padding:8px 11px;border-radius:4px;color:#ffd28a}
+  .hud{position:fixed;top:18px;right:18px;z-index:3;font:10px/1.7 ui-monospace,Menlo,monospace;
+    color:#9fc4dc;text-align:right;background:rgba(6,14,22,.7);padding:6px 9px;border-radius:4px}
+  .fallback{position:fixed;inset:0;background:#03070d url(../poster.jpg) center/cover;display:none}
+  @media (prefers-reduced-motion:reduce){canvas{display:none}.fallback{display:block}}
+</style></head>
+<body>
+<div class="badge">C · hybrid — video texture + shader</div>
+<div class="hud" id="hud">loading…</div>
+<div class="fallback" role="img" aria-label="Night ocean at the waterline"></div>
+<div class="copy">
+  <h1>Everything we kept<br>is still down there.</h1>
+  <p>Scroll to descend.</p>
+</div>
+<div class="scroller"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://esm.sh/three@0.182.0/build/three.module.min.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ===========================================================================
+   Why this file exists.
+
+   Hand-writing photorealistic volumetric water in GLSL does not work at this
+   budget — measured: a full procedural rebuild ran 45fps and still read as a
+   stylised demo, because real light transport, depth of field and film grain
+   are not reproducible in 200kb of shader.
+
+   Researched 2026-08-06: the pattern award-winning sites actually ship is a
+   HYBRID — real footage bound as a GPU texture with a shader on top. The video
+   supplies photorealism it would take a renderer to fake; the shader supplies
+   the reactivity and grade a plain <video> cannot. Several Awwwards heroes are
+   tagged "video + shader + filter" for exactly this reason.
+
+   So: the footage IS the realism. Everything below is grading and reactivity.
+   =========================================================================== */
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduce) init();
+
+async function init(){
+  const hud = document.getElementById('hud');
+  const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // Blob, not a plain src: a plain URL is only reliably seekable when the host
+  // serves byte ranges, and a non-seekable video silently freezes at frame 0.
+  hud.textContent = 'loading footage…';
+  const blob = await fetch('../underwater.mp4').then(r => r.blob());
+  const video = document.createElement('video');
+  video.src = URL.createObjectURL(blob);
+  video.muted = true; video.playsInline = true; video.preload = 'auto';
+  await new Promise(res => video.addEventListener('loadedmetadata', res, {once:true}));
+
+  const tex = new THREE.VideoTexture(video);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;      // no mipmaps: the frame changes every seek
+  tex.generateMipmaps = false;
+
+  const scene = new THREE.Scene();
+  const cam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms:{
+      uTex:{value:tex}, uT:{value:0}, uProg:{value:0},
+      uRes:{value:new THREE.Vector2(innerWidth, innerHeight)},
+      uCover:{value:new THREE.Vector2(1,1)}
+    },
+    vertexShader:`varying vec2 vUv; void main(){ vUv = uv;
+      gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader:`
+      precision highp float;
+      uniform sampler2D uTex; uniform float uT, uProg;
+      uniform vec2 uRes, uCover;
+      varying vec2 vUv;
+
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+
+      void main(){
+        // object-fit: cover, done in UV space so the frame never distorts
+        vec2 uv = (vUv - 0.5) / uCover + 0.5;
+
+        // 1. REFRACTION. Two crossed low-frequency waves displace the lookup.
+        //    This is the "displacement over video" that the hybrid pattern is
+        //    named for — it makes static footage feel like it is seen THROUGH
+        //    moving water rather than played behind glass.
+        float w = sin(uv.y*9.0 + uT*0.55)*0.0016 + sin(uv.x*13.0 - uT*0.42)*0.0013;
+        vec2 duv = uv + vec2(w, w*0.65);
+
+        // 2. CHROMATIC ABERRATION, scaled by distance from centre. Real lenses
+        //    split colour toward the edges; a per-channel offset of a fraction
+        //    of a pixel is what separates "rendered" from "photographed".
+        float r2 = dot(vUv-0.5, vUv-0.5);
+        vec2 ca = (vUv - 0.5) * r2 * 0.0075;
+        vec3 col = vec3(
+          texture2D(uTex, duv + ca).r,
+          texture2D(uTex, duv     ).g,
+          texture2D(uTex, duv - ca).b
+        );
+
+        // 3. DEPTH GRADE. Water absorbs long wavelengths first — red dies
+        //    fastest, then green, blue last. That physical fact is what makes
+        //    deep water read as deep, and it is one multiply.
+        vec3 absorb = vec3(0.55, 0.86, 1.06);
+        col *= mix(vec3(1.0), absorb, uProg);
+        col *= mix(1.0, 0.42, uProg * 0.85);          // light falls off with depth
+
+        // 4. CONTRAST + LIFT. A filmic S-curve with a slightly lifted, cooled
+        //    black point. Pure black crushes; real footage never does.
+        col = (col - 0.5) * 1.16 + 0.5;
+        col += vec3(0.006, 0.014, 0.024);
+
+        // 5. VIGNETTE, elliptical rather than round so it does not read as a
+        //    circle on a 16:9 frame.
+        float vig = smoothstep(1.25, 0.28, length((vUv-0.5) * vec2(1.32, 1.0)));
+        col *= mix(0.30, 1.0, vig);
+
+        // 6. GRAIN, animated per frame. The single cheapest cue that something
+        //    was photographed. Static noise reads as dirt; moving noise reads
+        //    as film. Scaled down in the highlights, like real grain.
+        float g = hash(vUv * uRes + fract(uT) * 91.7) - 0.5;
+        col += g * 0.030 * (1.0 - 0.55 * dot(col, vec3(0.333)));
+
+        gl_FragColor = vec4(col, 1.0);
+      }`
+  });
+  scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2), mat));
+
+  function fitCover(){
+    const va = (video.videoWidth || 16) / (video.videoHeight || 9);
+    const sa = innerWidth / innerHeight;
+    // scale the smaller axis up so the frame always fills, never letterboxes
+    mat.uniforms.uCover.value.set(sa > va ? 1 : va/sa, sa > va ? sa/va : 1);
+    mat.uniforms.uRes.value.set(innerWidth, innerHeight);
+  }
+  fitCover();
+  addEventListener('resize', () => {
+    renderer.setSize(innerWidth, innerHeight); fitCover();
+  }, {passive:true});
+
+  // ---- scroll scrubbing -----------------------------------------------
+  // Never issue a seek while the decoder is still resolving the last one —
+  // a fast flick otherwise piles seeks up and freezes the clip on mobile.
+  let seeking = false, want = -1;
+  video.addEventListener('seeked', () => { seeking = false; });
+
+  let prog = 0, eased = 0;
+  const onScroll = () => {
+    const max = document.body.scrollHeight - innerHeight;
+    prog = max > 0 ? Math.min(1, Math.max(0, scrollY/max)) : 0;
+  };
+  addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  const clock = new THREE.Clock();
+  let awake = true;
+  document.addEventListener('visibilitychange', () => { awake = !document.hidden; });
+
+  renderer.setAnimationLoop(() => {
+    if(!awake) return;
+    eased += (prog - eased) * 0.09;
+    const t = eased * (video.duration || 10);
+    if(!seeking && Math.abs(t - want) > 0.02){ want = t; seeking = true; video.currentTime = t; }
+
+    mat.uniforms.uT.value = clock.getElapsedTime();
+    mat.uniforms.uProg.value = eased;
+    tex.needsUpdate = true;
+    renderer.render(scene, cam);
+    hud.textContent = `${(eased*100).toFixed(0)}% · frame ${(t*24).toFixed(0)}/240`;
+  });
+}
+</script>
+</body></html>
