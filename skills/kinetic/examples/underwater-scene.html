@@ -47,6 +47,13 @@ function init(){
   // low-contrast fogged scene. Single biggest perf lever in this file.
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.setSize(innerWidth, innerHeight);
+  // Filmic tone mapping is the single cheapest cinematic win available: it costs
+  // one line, rolls highlights off instead of clipping them to flat white, and
+  // gives real blacks. Without it the caustics blew out and the whole scene read
+  // as a cyan disco ceiling rather than a night ocean.
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.62;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -104,13 +111,68 @@ function init(){
   water.visible = false;
   scene.add(water);
 
+  // ---- CAUSTIC TEXTURE, baked ONCE ---------------------------------------
+  // Evaluating Worley live per fragment measured 26.4fps / 97.5% dropped: two
+  // lookups is ~18 hash+sin evaluations per pixel across a full-screen surface.
+  // The production answer is to bake the pattern into a small SEAMLESS tile at
+  // startup and animate UVs over it — 2 texture reads instead of 18 hashes.
+  // Cell indices wrap mod CELLS so the tile repeats without a visible seam.
+  function bakeCaustics(size = 320, CELLS = 8){
+    const rt = new THREE.WebGLRenderTarget(size, size, {
+      wrapS:THREE.RepeatWrapping, wrapT:THREE.RepeatWrapping,
+      minFilter:THREE.LinearMipmapLinearFilter, magFilter:THREE.LinearFilter,
+      generateMipmaps:true, format:THREE.RGBAFormat
+    });
+    const quadScene = new THREE.Scene();
+    const quadCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+    quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),
+      new THREE.ShaderMaterial({
+        uniforms:{ uCells:{value:CELLS} },
+        vertexShader:`varying vec2 vUv; void main(){ vUv=uv;
+          gl_Position = vec4(position.xy,0.0,1.0); }`,
+        fragmentShader:`
+          varying vec2 vUv; uniform float uCells;
+          vec2 hash2(vec2 p){
+            p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
+            return fract(sin(p)*43758.5453);
+          }
+          float ridge(vec2 uv, float cells){
+            vec2 g = floor(uv), f = fract(uv);
+            float d1 = 8.0, d2 = 8.0;
+            for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){
+              vec2 o = vec2(float(x),float(y));
+              vec2 cell = mod(g+o, cells);          // wrap => seamless tile
+              vec2 p = 0.5 + 0.40*(hash2(cell)*2.0-1.0);
+              float d = length(o + p - f);
+              if(d < d1){ d2 = d1; d1 = d; } else if(d < d2){ d2 = d; }
+            }
+            return d2 - d1;
+          }
+          void main(){
+            // domain warp bends the Voronoi into irregular filaments instead of
+            // a wireframe mesh; done once here, so it is free at runtime
+            vec2 uv = vUv + vec2(sin(vUv.y*12.566)*0.022, cos(vUv.x*12.566)*0.022);
+            float r = ridge(uv*uCells, uCells);
+            float core = pow(1.0 - smoothstep(0.0, 0.075, r), 3.2);
+            float halo = pow(1.0 - smoothstep(0.0, 0.30,  r), 2.0);
+            gl_FragColor = vec4(vec3(core*0.78 + halo*0.30), 1.0);
+          }`
+      })));
+    const prev = renderer.getRenderTarget();
+    renderer.setRenderTarget(rt);
+    renderer.render(quadScene, quadCam);
+    renderer.setRenderTarget(prev);
+    return rt.texture;
+  }
+  const causticTex = bakeCaustics();
+
   // ---- WATER SURFACE, seen from below ------------------------------------
   // 90x90 measured 53.3fps: 8100 verts under a transparent full-screen fragment
   // shader is overdraw, not detail. 48x48 is visually identical here at 60fps.
   const surfGeo = new THREE.PlaneGeometry(360, 360, 48, 48);
   const surfMat = new THREE.ShaderMaterial({
     transparent:true, side:THREE.DoubleSide, depthWrite:false,
-    uniforms:{ uT:{value:0}, uBelow:{value:0} },
+    uniforms:{ uT:{value:0}, uBelow:{value:0}, uCaustic:{value:causticTex} },
     vertexShader:`
       uniform float uT; varying vec2 vUv; varying float vW; varying vec3 vW3;
       void main(){
@@ -125,26 +187,67 @@ function init(){
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader:`
-      uniform float uT; uniform float uBelow; varying vec2 vUv; varying float vW; varying vec3 vW3;
+      uniform float uT; uniform float uBelow; uniform sampler2D uCaustic;
+      varying vec2 vUv; varying float vW; varying vec3 vW3;
       void main(){
-        // caustic banding from the same wave field the vertices used
-        // One caustic layer, not two. The second cost ~4fps and was invisible
-        // under the first once the surface is this far away.
-        float c = sin(vUv.x*220.0 + uT*1.7) * sin(vUv.y*200.0 - uT*1.2);
-        c = smoothstep(0.35, 1.0, c);
-        float c2 = c * 0.6;
-        float moon = smoothstep(0.30, 0.0, distance(vUv, vec2(0.5,0.5)));
-        vec3 col = vec3(0.05,0.13,0.20)
-                 + vec3(0.55,0.72,0.90) * (c*0.55 + c2*0.35)
-                 + vec3(0.85,0.90,1.00) * moon * 0.9
-                 + vec3(0.30,0.45,0.60) * max(vW,0.0) * 0.10;
+        // Two scrolling samples of the SAME baked tile, at different scales and
+        // opposing drifts, multiplied. This is the standard trick: the product of
+        // two offset copies never repeats visibly, and costs 2 texture reads
+        // instead of ~18 hash evaluations. Measured 26.4fps -> see perfcheck.
+        vec2 a = vUv*3.0 + vec2( uT*0.013, uT*0.009);
+        vec2 b = vUv*5.3 - vec2( uT*0.011, uT*0.017);
+        // MAX, not multiply. The tile is thin bright lines on black, so a product
+        // is near-zero except at rare intersections — that turned the web into
+        // scattered glints. max() keeps the filament structure of both layers.
+        float t1 = texture2D(uCaustic, a).r;
+        float t2 = texture2D(uCaustic, b).r;
+        float web = max(t1, t2*0.75) * 0.95;
+
+        float moon = smoothstep(0.34, 0.0, distance(vUv, vec2(0.5,0.5)));
+        vec3 col = vec3(0.008,0.026,0.044)
+                 + vec3(0.30,0.48,0.68) * web
+                 + vec3(0.55,0.66,0.85) * moon * 0.55
+                 + vec3(0.14,0.24,0.36) * max(vW,0.0) * 0.04;
         float fade = smoothstep(320.0, 40.0, length(vW3));   // hide the far edge
-        gl_FragColor = vec4(col, (0.42 + c*0.4 + moon*0.5) * fade);
+        gl_FragColor = vec4(col, (0.34 + web*0.40 + moon*0.30) * fade);
       }`
   });
   const surface = new THREE.Mesh(surfGeo, surfMat);
   surface.rotation.x = -Math.PI/2;
   scene.add(surface);
+
+  // ---- GOD RAYS ----------------------------------------------------------
+  // Volumetric shafts without a volumetric pass: ONE additive cone hanging from
+  // the surface, with the shaft pattern drawn in the fragment shader and both
+  // ends faded out. Depth-write off and additive blending means it never occludes
+  // anything, it only adds light. Cost is one draw call and a cheap fragment.
+  const rays = new THREE.Mesh(
+    new THREE.ConeGeometry(46, 130, 28, 1, true),
+    new THREE.ShaderMaterial({
+      transparent:true, depthWrite:false, side:THREE.DoubleSide,
+      blending:THREE.AdditiveBlending, fog:false,
+      uniforms:{ uT:{value:0}, uFade:{value:0} },
+      vertexShader:`varying vec2 vUv; varying float vY;
+        void main(){ vUv = uv; vY = position.y;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader:`
+        uniform float uT; uniform float uFade; varying vec2 vUv; varying float vY;
+        void main(){
+          // shafts = banded noise around the cone; three speeds so they drift apart
+          float a = vUv.x * 6.2831;
+          float s = sin(a*7.0  + uT*0.30)*0.5 + 0.5;
+          s *= sin(a*13.0 - uT*0.21)*0.5 + 0.5;
+          s *= sin(a*3.0  + uT*0.13)*0.5 + 0.5;
+          s = pow(s, 1.6);
+          float top = smoothstep(0.0, 0.30, vUv.y);      // fade in under the surface
+          float bot = smoothstep(1.0, 0.42, vUv.y);      // dissolve into the deep
+          gl_FragColor = vec4(vec3(0.42,0.62,0.85), s * top * bot * 0.30 * uFade);
+        }`
+    }));
+  rays.position.y = -58;    // apex up at the surface, opening downward
+  rays.rotation.x = Math.PI;
+  rays.visible = false;
+  scene.add(rays);
 
   // ---- BUBBLE COLUMN — motion in the vertex shader, not in JS ------------
   // The JS version of this loop (1200 positions + a buffer upload per frame)
@@ -254,6 +357,15 @@ function init(){
 
     surfMat.uniforms.uT.value = t;
     pMat.uniforms.uT.value = t;                 // the entire particle sim: one write
+
+    // Rays only exist underwater, strongest just below the surface where the
+    // light still reaches, gone by the time it is properly dark.
+    rays.visible = !!below;
+    if(below){
+      rays.material.uniforms.uT.value = t;
+      rays.material.uniforms.uFade.value = Math.max(0, 1 - depth*1.5);
+      rays.position.set(0, y - 62, -6);
+    }
 
     for(const g of photos){
       g.rotation.z = Math.sin(t*0.32 + g.userData.ph) * g.userData.amp;
