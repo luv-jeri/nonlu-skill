@@ -236,7 +236,7 @@ async function passEntryScreens(page, runDir, gaps, log) {
 }
 
 export async function runCapture(opts) {
-  const { url, level = 'full', outRoot, headless = false, components = [], thorough = false } = opts;
+  const { url, level = 'full', outRoot, headless = false, components = [], thorough = false, smartProbes = false } = opts;
   const targetUrl = url;
   const persistedUrl = sanitizeUrl(url);
   const budgetSec = opts.budgetSec || (thorough ? THOROUGH_BUDGET_SECONDS : BUDGETS[level] || BUDGETS.full);
@@ -333,7 +333,7 @@ export async function runCapture(opts) {
     if ((ctx.evidence.hoverSelectors || []).length && !thorough) gaps.push({ kind: 'hover-targets', note: `${ctx.evidence.hoverSelectors.length} :hover selectors found; rerun with --thorough for pointer-path evidence` });
 
     manifest('scroll-atlas');
-    ctx.scroll = await scrollAtlas(page, runDir, { level, thorough, thoroughProfile }, log, budget);
+    ctx.scroll = await scrollAtlas(page, runDir, { level, thorough, thoroughProfile, smartProbes }, log, budget);
     if (!ctx.scroll.moved && ctx.scroll.total > 1400) gaps.push({ kind: 'scroll-hijack', note: thorough ? 'no credible effective progress signal advanced during the bounded real-wheel retries' : 'page did not move under scrollTo/wheel; rerun with --thorough for effective-progress traversal' });
     if (!thorough && ctx.scroll.shortPage && (ctx.evidence.runtime?.canvasCount || 0) > 0 && (ctx.evidence.listenerCounts?.wheel || 0) > 0) gaps.push({ kind: 'virtual-scroll-experience', note: 'one-viewport page with canvas + wheel listeners; rerun with --thorough to sample its wheel-driven story' });
 

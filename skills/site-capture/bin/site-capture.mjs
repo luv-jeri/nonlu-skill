@@ -10,6 +10,7 @@ function usage() {
   console.log(`site-capture <url> ["css-selector"=level ...] [options]
   --level full|medium|quick   capture depth (default full)
   --thorough                  slow atomic dwell/cursor/state capture (additive)
+  --smart-probes              probe one representative per same-styled interactive group (thorough)
   --out <dir>                 output root (default ./captures)
   --headless                  run Chrome headless (default headed)
   --budget <seconds>          override the level's time budget
@@ -74,6 +75,7 @@ else {
     url,
     level: flag('--level', 'full'),
     thorough: args.includes('--thorough'),
+    smartProbes: args.includes('--smart-probes'),
     outRoot: flag('--out', './captures'),
     headless: args.includes('--headless'),
     budgetSec: flag('--budget', null) ? Number(flag('--budget', null)) : null,

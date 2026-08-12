@@ -1,8 +1,54 @@
 import { createHash } from 'node:crypto';
-import { appendFileSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { StringDecoder } from 'node:string_decoder';
 
 export const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
+
+// Chunked line walker: run telemetry can exceed Node's 0x1fffffe8-char string ceiling
+// (a 1GB cursor-probes.ndjson killed two report stages), so no whole-file string is ever
+// built. Individual lines must still fit in a string. onLine gets the raw line text.
+export function eachFileLine(path, onLine) {
+  if (!existsSync(path)) return;
+  const fd = openSync(path, 'r');
+  try {
+    const chunk = Buffer.alloc(32 * 1024 * 1024);
+    const decoder = new StringDecoder('utf8');
+    let carry = '';
+    let bytes;
+    while ((bytes = readSync(fd, chunk, 0, chunk.length, null)) > 0) {
+      carry += decoder.write(chunk.subarray(0, bytes));
+      const lines = carry.split('\n');
+      carry = lines.pop();
+      for (const line of lines) onLine(line);
+    }
+    const last = carry + decoder.end();
+    if (last) onLine(last);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+// Chunked pattern scan for the secret gate: the trailing-overlap re-test catches a match
+// that straddles a chunk boundary (8KB covers any credential the pattern set can match).
+export function fileContainsPattern(path, regex, overlap = 8192) {
+  if (!existsSync(path)) return false;
+  const fd = openSync(path, 'r');
+  try {
+    const chunk = Buffer.alloc(32 * 1024 * 1024);
+    const decoder = new StringDecoder('utf8');
+    let tail = '';
+    let bytes;
+    while ((bytes = readSync(fd, chunk, 0, chunk.length, null)) > 0) {
+      const text = tail + decoder.write(chunk.subarray(0, bytes));
+      if (regex.test(text)) return true;
+      tail = text.slice(-overlap);
+    }
+    return regex.test(tail + decoder.end());
+  } finally {
+    closeSync(fd);
+  }
+}
 
 export function ensureDir(p) { mkdirSync(p, { recursive: true }); return p; }
 

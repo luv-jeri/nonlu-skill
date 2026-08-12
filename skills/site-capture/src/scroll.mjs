@@ -414,7 +414,7 @@ const enumerateVisibleInteractiveTargets = (page) => page.evaluate(() => {
     if (style.display === 'none' || style.visibility === 'hidden' || rect.width < 2 || rect.height < 2 || rect.bottom < 0 || rect.top > innerHeight || rect.right < 0 || rect.left > innerWidth) continue;
     const x = Math.max(1, Math.min(innerWidth - 2, rect.left + rect.width / 2)); const y = Math.max(1, Math.min(innerHeight - 2, rect.top + rect.height / 2));
     const hit = document.elementsFromPoint(x, y);
-    targets.push({ elementRef: idFor(element), tag: element.localName, role: element.getAttribute('role'), type: element.getAttribute('type'), label: (element.getAttribute('aria-label') || element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120), listenerTypes: window.__scapListenerTypesFor?.(element) || [], cursor: style.cursor, rect: { x: rect.x, y: rect.y, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height }, point: { x: Math.round(x), y: Math.round(y) }, hitTestReachable: hit.includes(element) || hit.some((node) => element.contains(node)) });
+    targets.push({ elementRef: idFor(element), tag: element.localName, role: element.getAttribute('role'), type: element.getAttribute('type'), className: (element.getAttribute('class') || '').trim().replace(/\s+/g, ' ').slice(0, 160), label: (element.getAttribute('aria-label') || element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120), listenerTypes: window.__scapListenerTypesFor?.(element) || [], cursor: style.cursor, rect: { x: rect.x, y: rect.y, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height }, point: { x: Math.round(x), y: Math.round(y) }, hitTestReachable: hit.includes(element) || hit.some((node) => element.contains(node)) });
     }
   }
   return targets.sort((a, b) => a.rect.top - b.rect.top || a.rect.left - b.rect.left);
@@ -485,6 +485,18 @@ async function probeInteractiveTargets(page, runDir, stopId, autonomous, budgetS
   const neutral = { x: 2, y: 2 };
   for (const target of discovered) {
     if (budgetState.probedRefs.has(target.elementRef)) continue;
+    // Smart probes: same-styled clones (identical tag/role/class/cursor/listeners/size, label
+    // excluded) share one full probe; the rest are recorded as SameAs pointing at it.
+    const signature = budgetState.smart ? [target.tag, target.role || '', target.type || '', target.className || '', target.cursor || '', (target.listenerTypes || []).slice().sort().join(','), `${Math.round(target.rect.width / 8)}x${Math.round(target.rect.height / 8)}`].join('|') : null;
+    if (budgetState.smart && budgetState.probedSignatures.has(signature)) {
+      const sameAs = { id: `interactive-${stopId}-${target.elementRef}`, stopId, elementRef: target.elementRef, status: 'SameAs', terminalStatus: 'smart-skipped', sameAsElementRef: budgetState.probedSignatures.get(signature), reason: 'smart-probes: same-styled as an already-probed representative', target };
+      budgetState.probedRefs.add(target.elementRef);
+      budgetState.smartSkipped++;
+      ndjsonAppend(join(runDir, 'source-evidence', 'interactive-states.ndjson'), scrubEvidence(sameAs));
+      ndjsonAppend(join(runDir, 'telemetry', 'interactive-probes.ndjson'), scrubEvidence(sameAs));
+      records.push(sameAs);
+      continue;
+    }
     if (!target.hitTestReachable) {
       const occluded = { id: `interactive-${stopId}-${target.elementRef}`, stopId, elementRef: target.elementRef, status: 'Unknown', terminalStatus: 'occluded', reason: 'center point was not reachable in the observed hit-test stack', target };
       budgetState.probedRefs.add(target.elementRef);
@@ -561,6 +573,7 @@ async function probeInteractiveTargets(page, runDir, stopId, autonomous, budgetS
       record.phases.restored = { status: separatedRestore.changed ? 'not-restored-in-window' : 'restored', settle: restoreSettle, state: restoredState, delta: separatedRestore, ...restoredFrame };
       record.lifecycleEvents = await page.evaluate((from) => (window.__scapPeek?.() || []).slice(from), eventCursor).catch(() => []);
       record.status = 'Observed'; budgetState.captured++;
+      if (budgetState.smart) budgetState.probedSignatures.set(signature, target.elementRef);
     } catch (error) {
       try { await page.mouse.up(); } catch {}
       await page.mouse.move(neutral.x, neutral.y).catch(() => {});
@@ -572,7 +585,7 @@ async function probeInteractiveTargets(page, runDir, stopId, autonomous, budgetS
     ndjsonAppend(join(runDir, 'telemetry', 'interactive-probes.ndjson'), safe);
     records.push(safe);
   }
-  return { discovered: discovered.length, records, captured: records.filter((record) => record.status === 'Observed').length, skipped: records.filter((record) => record.status !== 'Observed').length };
+  return { discovered: discovered.length, records, captured: records.filter((record) => record.status === 'Observed').length, sameAs: records.filter((record) => record.status === 'SameAs').length, skipped: records.filter((record) => record.status !== 'Observed' && record.status !== 'SameAs').length };
 }
 
 async function probeCursorGrid(page, runDir, stopId, section, autonomous, readableCache, diagnosticCounter, maxDiagnosticFrames) {
@@ -701,7 +714,7 @@ async function thoroughScrollAtlas(page, runDir, opts, log, budget) {
   const maxStops = opts.thoroughProfile?.maxStops || 120;
   const maxDiagnosticFrames = opts.thoroughProfile?.maxDiagnosticFrames || 1800;
   const diagnosticCounter = { count: 0 };
-  const interactiveBudget = { discovered: 0, captured: 0, skipped: 0, crops: 0, discoveredRefs: new Set(), probedRefs: new Set(), skippedRefs: new Set() };
+  const interactiveBudget = { discovered: 0, captured: 0, skipped: 0, crops: 0, discoveredRefs: new Set(), probedRefs: new Set(), skippedRefs: new Set(), smart: opts.smartProbes === true, probedSignatures: new Map(), smartSkipped: 0 };
   const readableCache = new Map();
   const total = await page.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body.scrollHeight));
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -936,7 +949,7 @@ async function thoroughScrollAtlas(page, runDir, opts, log, budget) {
   if (!scenes.length) scenes.push({ id: 'S01', sectionRef: null, startY: 0, endY: 0, keyframes: [], note: 'no complete thorough stop' });
   const moved = stops.some((stop) => stop.kind !== 'forensic-refinement' && stop.phases?.movement?.status === 'advanced');
   const remainingStoryRange = termination?.status === 'cap-skipped' ? { status: 'Unknown', reason: termination.reason, nativeFromY: termination.progress?.native?.y ?? null, nativeToY: termination.progress?.native?.maxY ?? null, estimatedCssPx: termination.progress?.native ? Math.max(0, termination.progress.native.maxY - termination.progress.native.y) : null } : null;
-  return { frames, scenes, total, moved, boundaries, termination, remainingStoryRange, vh, shortPage: total <= vh * 1.5, thorough: true, stops, interactiveCoverage: { discovered: interactiveBudget.discovered, captured: interactiveBudget.captured, skipped: interactiveBudget.skipped, cropFrames: interactiveBudget.crops, targetCap: 120, cropCap: 480 }, profile: { targetTravelCssPx, maxStops, dwellSamplesPerStop: 6, dwellScheduleMs: [0, 400, 900, 1400, 2100, 2800], cursorPositionsPerStop: 5, cursorWaypointsPerMove: 9, maxDiagnosticFrames }, diagnosticFrames: diagnosticCounter.count };
+  return { frames, scenes, total, moved, boundaries, termination, remainingStoryRange, vh, shortPage: total <= vh * 1.5, thorough: true, stops, interactiveCoverage: { discovered: interactiveBudget.discovered, captured: interactiveBudget.captured, skipped: interactiveBudget.skipped, smartSkipped: interactiveBudget.smartSkipped, probeMode: interactiveBudget.smart ? 'smart-dedupe' : 'exhaustive', cropFrames: interactiveBudget.crops, targetCap: 120, cropCap: 480 }, profile: { targetTravelCssPx, maxStops, dwellSamplesPerStop: 6, dwellScheduleMs: [0, 400, 900, 1400, 2100, 2800], cursorPositionsPerStop: 5, cursorWaypointsPerMove: 9, maxDiagnosticFrames }, diagnosticFrames: diagnosticCounter.count };
 }
 
 async function settle(page, maxMs) {

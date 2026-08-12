@@ -5,7 +5,7 @@
 // URLs are query-sanitized before persisting.
 import { writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ndjsonAppend, sanitizeUrl, sha256, ensureDir, redactSecrets } from './util.mjs';
+import { eachFileLine, ndjsonAppend, sanitizeUrl, sha256, ensureDir, redactSecrets } from './util.mjs';
 
 const SAVE_TYPES = [
   [/^image\//, 'image'], [/^font\/|font-woff|application\/font/, 'font'],
@@ -66,7 +66,8 @@ export function attachNetwork(context, runDir, caps, log) {
 export function readStoredStylesheets(runDir) {
   const indexPath = join(runDir, 'assets', 'index.ndjson');
   if (!existsSync(indexPath)) return [];
-  const rows = readFileSync(indexPath, 'utf8').split('\n').filter(Boolean).map((line) => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
+  const rows = [];
+  eachFileLine(indexPath, (line) => { if (line) { try { const row = JSON.parse(line); if (row) rows.push(row); } catch {} } });
   const stylesheets = [];
   for (const row of rows) {
     if (row.role !== 'css' || !row.file) continue;

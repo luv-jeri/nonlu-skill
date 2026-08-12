@@ -24,7 +24,7 @@ Driving idea: a deterministic engine captures the evidence; the agent supplies t
    ```
      node ~/.agents/skills/site-capture/bin/site-capture.mjs <url> \
      ["css-selector"=level ...] [--level full|medium|quick] \
-     [--thorough] [--out <dir>] [--headless] [--budget <seconds>]
+     [--thorough] [--smart-probes] [--out <dir>] [--headless] [--budget <seconds>]
    ```
 
    - One page per run. For several pages, run once per page with the level the user gave for that page (default `full`; the user may downgrade: "about = medium").
@@ -33,6 +33,7 @@ Driving idea: a deterministic engine captures the evidence; the agent supplies t
    - Budgets: full 600s, medium 240s, quick 90s. The engine degrades gracefully at the cap and reports it; that is correct behavior, not an error.
    - Default mode retains the fast Phase A scroll atlas. `--thorough` is an additive slow overlay: 100–130px effective story steps; settle; six stationary frames over about 2.8s; every visible safe interactive target within the recorded caps through base/during/settled/reverse/focus/active/restored states; five section-local cursor positions; nine frame-plus-readable-data waypoints along each pointer path; pointer restoration; then a deep live style/runtime snapshot. Large controlled deltas queue native-safe 8px forensic refinement, explicitly separated from the faithful wheel track.
    - Without `--budget`, thorough mode receives a 20-minute browser-active budget and reserves finalization time. Recommend it for award sites, pinned/virtual scroll, canvas-heavy experiences, “capture everything,” and targeted component/section work. It is explicit because ordinary captures must stay practical.
+   - `--smart-probes` (thorough only, opt-in) probes ONE representative per group of same-styled interactive elements (identical tag/role/class/cursor/listeners/size; label excluded) and records the clones as `SameAs` rows pointing at it. Big time saver on pages with long identical nav/index lists; default stays exhaustive because two same-styled elements CAN carry different JS behavior - coverage reports `probeMode` and `smartSkipped` so the tradeoff is always visible.
    - Every capture also produces `media/reference/human-walkthrough-30fps.mp4`: a separate Playwright `recordVideo` pass driven with slow real wheel motion, pauses, and cursor drift, normalized by ffmpeg to 30 fps. Each requested component selector gets a corresponding video under `media/components/`.
 3. **While it runs, leave it alone.** It owns an isolated Chrome; interacting with that window contaminates the faithful pass.
 4. **Gap-fill only declared Unknowns** after the engine exits. Read `gap-queue.json`; Phase B already captures authored/computed transition timing, keyframes, CSS/WAAPI, public GSAP/ScrollTrigger, pseudos, stagger systems, layout/SVG/3D, and—with `--thorough`—dwell/cursor/scroll-state evidence. Remaining gaps commonly include consent with no safe reject, closed/cross-origin realms, hidden runtimes, and semantic canvas/WebGL internals. Record any authorized manual findings as NDJSON lines in `gaps/supplemental.ndjson` and screenshots in `frames/gap-fill/`.

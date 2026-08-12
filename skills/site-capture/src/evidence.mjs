@@ -3,7 +3,7 @@
 // runtime APIs are kept separate, and opaque canvas internals remain Unknown.
 import { join } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
-import { atomicWriteJson, sanitizeUrl } from './util.mjs';
+import { atomicWriteJson, eachFileLine, sanitizeUrl } from './util.mjs';
 
 export const STYLE_PROPERTY_SET = 'phase-b-v1';
 
@@ -999,7 +999,8 @@ const PIPELINE_SIGNALS = [
 
 export function mergeTechnology(runtime, runDir) {
   const ledgerPath = join(runDir, 'network', 'responses.ndjson');
-  const urls = existsSync(ledgerPath) ? readFileSync(ledgerPath, 'utf8').split('\n').filter(Boolean).map((line) => { try { return JSON.parse(line).url || ''; } catch { return ''; } }) : [];
+  const urls = [];
+  eachFileLine(ledgerPath, (line) => { if (line) { try { urls.push(JSON.parse(line).url || ''); } catch { urls.push(''); } } });
   const netHits = {};
   for (const [name, regexp] of URL_SIGNALS) netHits[name] = urls.some((url) => regexp.test(url));
   const tech = [];
