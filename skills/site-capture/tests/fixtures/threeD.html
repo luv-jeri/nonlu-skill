@@ -1,0 +1,10 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Phase B 3D fixture</title>
+<style>
+  body { min-height: 105vh; display: grid; place-items: center; background: #0f172a; }
+  .phase-b-perspective { perspective: 700px; perspective-origin: 30% 40%; transform-style: preserve-3d; }
+  .phase-b-preserve { transform-style: preserve-3d; transform: rotateY(18deg); }
+  .phase-b-flatten { transform-style: flat; transform: translateZ(12px); }
+  .phase-b-card { width: 180px; height: 240px; background: #7c3aed; transform: rotateX(24deg) rotateY(-14deg) translateZ(72px); backface-visibility: hidden; }
+</style></head>
+<body><section class="phase-b-perspective"><div class="phase-b-preserve"><div class="phase-b-flatten"><div class="phase-b-card"></div></div></div></section></body></html>

@@ -100,6 +100,17 @@ printed a formatted box to stdout and Claude Code collapsed it to `Ran 2 shell c
 the user saw nothing. Tool stdout is a model channel, not a human channel. Never "fix"
 this skill by moving rendering into a script.
 
+### Site Capture (`skills/site-capture/`) — self-contained pattern
+Website experience capture engine — studies a reference site (frames, styles, shaders, network, motion, cursor) into an evidence folder + RECREATE report; ships the recreation quality bar and review loop. The one skill here with a runtime: `npm install` inside the skill folder (Playwright + pngjs), Chrome via `channel: 'chrome'`.
+
+- `SKILL.md` — complete self-contained skill (iron laws, process, quality bar, review loop, failure modes)
+- `src/` — the capture engine (run/scroll/evidence/network/report/motion-forensics/cleanup)
+- `bin/` — `site-capture.mjs` entry, `asset-qa.py`, `cutout-art.py`, `recreate-review.mjs`
+- `injected/` — the in-page probe (shader capture via `shaderSource`/`linkProgram` hooks)
+- `docs/` — capture checklist + Phase B engine spec
+- `tests/` — fixture suite (`run-fixture-test.sh`: full capture + kill-9 orphan check) + unit tests
+- `LEARNINGS.md` — its own mistake log
+
 ### Skill Evolve (`skills/skill-evolve/`) — self-contained pattern
 Capture skill mistakes instantly; upgrade skills via classified evidence + approved diff (never silent self-editing).
 

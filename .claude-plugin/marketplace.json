@@ -1,15 +1,16 @@
 {
-  "name": "boost",
-  "title": "Boost — Prompt Enhancer",
-  "description": "Transform rough prompts into structured, context-rich prompts. Just add /boost to any prompt. Detects task type, discovers project context, and structures your prompt with the right template — debug, feature, refactor, test, review, docs, or general; /recap closes work with a visual summary instead of a wall of text.",
-  "category": "productivity",
-  "skills": [
-    "boost",
-    "pixel",
-    "qa-shield",
-    "qa-watch",
-    "skill-smith",
-    "skill-evolve",
-    "recap"
-  ]
+ "name": "boost",
+ "title": "Boost — Prompt Enhancer",
+ "description": "Transform rough prompts into structured, context-rich prompts. Just add /boost to any prompt. Detects task type, discovers project context, and structures your prompt with the right template — debug, feature, refactor, test, review, docs, or general; /recap closes work with a visual summary instead of a wall of text.",
+ "category": "productivity",
+ "skills": [
+  "boost",
+  "pixel",
+  "qa-shield",
+  "qa-watch",
+  "skill-smith",
+  "skill-evolve",
+  "recap",
+  "site-capture"
+ ]
 }

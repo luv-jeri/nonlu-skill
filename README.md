@@ -51,6 +51,7 @@
 | :hammer: | **Skill Smith** | `/skill-smith` | Creates new skills with the right ceremony — quick, standard, or hardened tier |
 | :seedling: | **Skill Evolve** | `/skill-evolve` | Captures a skill's mistakes and upgrades the skill with proof, never silently |
 | :clipboard: | **Recap** | `/recap` | Closes a unit of work with a visual capsule and a decision log instead of a wall of text |
+| :movie_camera: | **Site Capture** | `/site-capture` | Studies an award-level site like a movie — design, motion, shaders, scroll and cursor feel — into an evidence folder plus a RECREATE report, with measurement forensics and a see-judge-iterate recreation review loop |
 
 <br/>
 

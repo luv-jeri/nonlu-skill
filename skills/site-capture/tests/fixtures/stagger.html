@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Phase B stagger layout SVG fixture</title>
+<style>
+  body { min-height: 105vh; margin: 0; display: grid; place-items: center; }
+  .phase-b-grid { display: grid; grid-template-columns: repeat(3, minmax(80px, 1fr)); gap: 18px; contain: layout paint; will-change: transform; overflow-x: auto; scroll-snap-type: x mandatory; clip-path: inset(0 round 16px); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .phase-b-item { --i: 0; padding: 24px; background: #0891b2; transition: transform 260ms ease, opacity 260ms ease; transition-delay: calc(var(--i) * 80ms); scroll-snap-align: center; }
+  .phase-b-item:nth-child(2) { --i: 1; animation-delay: 160ms; }
+  .phase-b-item:nth-child(3) { --i: 2; animation-delay: 80ms; }
+  .phase-b-item::after { content: attr(data-index); color: white; }
+</style></head>
+<body><div class="phase-b-grid"><div class="phase-b-item" data-index="0"></div><div class="phase-b-item" data-index="1"></div><div class="phase-b-item" data-index="2"><svg viewBox="0 0 40 40" width="40"><defs><linearGradient id="g"><stop stop-color="#fff"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs><circle cx="20" cy="20" r="15" fill="url(#g)" stroke="#111" stroke-width="2"/></svg></div></div></body></html>

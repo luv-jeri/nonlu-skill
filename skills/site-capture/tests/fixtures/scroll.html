@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Scroll Story Fixture</title>
+<style>
+  :root { --ink: #1a1a2e; --paper: #f5efe6; --accent: #c1440e; --sky: #16213e; }
+  * { margin: 0; box-sizing: border-box; }
+  body { font-family: Georgia, serif; color: var(--ink); }
+  section { min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 4rem; }
+  .s1 { background: var(--paper); }
+  .s2 { background: var(--sky); color: var(--paper); }
+  .s3 { background: var(--accent); color: var(--paper); }
+  .s4 { background: var(--ink); color: var(--paper); }
+  .s5 { background: var(--paper); }
+  h1 { font-size: 4rem; letter-spacing: -0.02em; }
+  h2 { font-size: 2.5rem; }
+  .sticky-wrap { height: 200vh; position: relative; background: var(--sky); }
+  .sticky-panel { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--paper); }
+  .card { padding: 2rem; border-radius: 12px; background: rgba(255,255,255,0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; }
+  .card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+  .pulse { width: 60px; height: 60px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.3); opacity: 0.6; } }
+</style></head>
+<body>
+  <section class="s1"><h1>Act One</h1><p>The paper-colored opening.</p><div class="pulse"></div></section>
+  <section class="s2"><h2>Act Two</h2><p>Deep blue. The mood shifts.</p></section>
+  <div class="sticky-wrap"><div class="sticky-panel"><h2>The pinned interlude</h2></div></div>
+  <section class="s3"><h2>Act Three</h2><div class="card">A card that lifts on hover</div></section>
+  <section class="s4"><h2>Act Four</h2><p>Near-black. The climax.</p></section>
+  <section class="s5"><h2>Coda</h2><p>Return to paper.</p></section>
+</body></html>

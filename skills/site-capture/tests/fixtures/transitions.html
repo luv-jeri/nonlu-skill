@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Phase B transitions fixture</title>
+<style>
+  @property --phase-b-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  body { min-height: 105vh; display: grid; place-items: center; background: #111827; }
+  .phase-b-transition {
+    --phase-b-angle: 0deg;
+    position: relative; width: 240px; padding: 32px; color: white; background: #2563eb;
+    transition-property: transform, opacity, visibility;
+    transition-duration: 180ms, .42s;
+    transition-timing-function: ease-in-out, cubic-bezier(.2, .8, .2, 1), steps(2, jump-both);
+    transition-delay: -20ms, 40ms;
+    transition-behavior: normal, allow-discrete;
+  }
+  .phase-b-transition::before {
+    content: "phase-b-pseudo"; position: absolute; inset: -12px; border: 2px solid #f59e0b;
+    transform: rotate(var(--phase-b-angle)); mask-image: linear-gradient(#000, transparent);
+    transition: transform 240ms ease-out;
+  }
+  .phase-b-transition:hover, .phase-b-transition:focus-visible { transform: translateY(-12px); opacity: .72; --phase-b-angle: 4deg; }
+  .phase-b-transition:active { transform: scale(.96); }
+  @starting-style { .phase-b-transition { opacity: 0; } }
+</style></head>
+<body><button class="phase-b-transition">Transition target</button></body></html>

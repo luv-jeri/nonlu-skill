@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Phase B autonomous background fixture</title>
+<style>
+  @keyframes phase-b-background-pulse { 50% { background-position: 100% 0; filter: hue-rotate(25deg); } }
+  html, body { margin: 0; }
+  body { min-height: 1080px; background: linear-gradient(90deg,#0f172a,#1d4ed8,#0f172a); background-size: 200% 100%; animation: phase-b-background-pulse 1.1s linear infinite; }
+  .phase-b-scroll-state { position: absolute; top: 930px; color: white; opacity: .2; transition: opacity 120ms linear; }
+  .phase-b-scroll-state.active { opacity: 1; }
+</style></head>
+<body><div class="phase-b-scroll-state">scroll-state-active</div>
+<script>addEventListener('scroll',()=>document.querySelector('.phase-b-scroll-state').classList.toggle('active',scrollY>80),{passive:true});</script></body></html>

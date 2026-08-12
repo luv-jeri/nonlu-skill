@@ -1,0 +1,12 @@
+{
+  "name": "site-capture",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Website experience capture engine (Phase B: deep motion/runtime evidence, thorough causal traversal, and rollups)",
+  "bin": { "site-capture": "bin/site-capture.mjs" },
+  "dependencies": {
+    "playwright": "1.57.0",
+    "pngjs": "7.0.0"
+  }
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Phase B cursor path fixture</title>
+<style>
+  @keyframes phase-b-idle { 50% { opacity: .7 } }
+  html,body{margin:0;min-height:105vh;background:#020617;color:white}
+  .phase-b-field{position:relative;height:900px;display:grid;place-items:center;overflow:hidden;perspective:800px}
+  .phase-b-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .phase-b-parallax{width:240px;height:240px;background:#ea580c;transform:translate3d(var(--px,0px),var(--py,0px),0) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform 120ms ease-out;animation:phase-b-idle 1.3s linear infinite}
+  .phase-b-cursor{position:fixed;width:18px;height:18px;border:2px solid white;border-radius:50%;pointer-events:none;transform:translate(calc(var(--cx, -40px) - 9px),calc(var(--cy, -40px) - 9px));mix-blend-mode:difference}
+</style></head>
+<body><section class="phase-b-field"><canvas class="phase-b-canvas" width="720" height="450"></canvas><button class="phase-b-parallax">pointer field</button></section><div class="phase-b-cursor"></div>
+<script>
+  const canvas=document.querySelector('.phase-b-canvas'),ctx=canvas.getContext('2d');
+  const draw=(clientX=innerWidth/2,clientY=innerHeight/2)=>{
+    if(!ctx)return;
+    const x=clientX/innerWidth*canvas.width,y=clientY/900*canvas.height;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const gradient=ctx.createRadialGradient(x,y,4,x,y,170);
+    gradient.addColorStop(0,'rgba(56,189,248,.65)');gradient.addColorStop(1,'rgba(2,6,23,0)');
+    ctx.fillStyle=gradient;ctx.fillRect(0,0,canvas.width,canvas.height);
+  };
+  draw();
+  addEventListener('pointermove',(event)=>{
+    const x=event.clientX/innerWidth-.5,y=event.clientY/innerHeight-.5;
+    const card=document.querySelector('.phase-b-parallax');
+    card.style.setProperty('--px',`${x*36}px`);card.style.setProperty('--py',`${y*24}px`);
+    card.style.setProperty('--rx',`${-y*12}deg`);card.style.setProperty('--ry',`${x*14}deg`);
+    document.documentElement.style.setProperty('--cx',`${event.clientX}px`);document.documentElement.style.setProperty('--cy',`${event.clientY}px`);
+    draw(event.clientX,event.clientY);
+  });
+</script></body></html>

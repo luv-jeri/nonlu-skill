@@ -31,7 +31,13 @@
     "visual-summary",
     "session-summary",
     "decision-log",
-    "terminal-ui"
+    "terminal-ui",
+    "site-capture",
+    "website-capture",
+    "design-inspiration",
+    "motion-forensics",
+    "site-recreation",
+    "playwright"
   ],
   "type": "module",
   "repository": {

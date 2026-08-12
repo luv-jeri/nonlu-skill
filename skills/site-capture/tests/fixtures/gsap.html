@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Phase B GSAP fixture</title>
+<style>body{min-height:105vh;display:grid;place-items:center}.phase-b-gsap{width:90px;height:90px;background:#16a34a}</style></head>
+<body><div class="phase-b-gsap"></div>
+<script>
+  const target = document.querySelector('.phase-b-gsap');
+  const tween = {
+    vars: { duration: 1.25, delay: .1, ease: 'power2.out', stagger: { each: .08, from: 'start' }, x: 120, opacity: .5, repeat: 2, yoyo: true },
+    targets: () => [target], duration: () => 1.25, totalDuration: () => 3.75, delay: () => .1,
+    repeat: () => 2, repeatDelay: () => 0, yoyo: () => true, timeScale: () => 1,
+    paused: () => false, reversed: () => false, progress: () => .4, totalProgress: () => .2,
+    constructor: { name: 'Tween' }, parent: null,
+  };
+  const timeline = { getChildren: () => [tween], labels: { intro: 0 }, constructor: { name: 'Timeline' } };
+  const trigger = {
+    vars: { id: 'phase-b-trigger', trigger: target, start: 'top 80%', end: 'bottom 20%', scrub: .5, pin: true, pinSpacing: true, snap: .25, toggleActions: 'play pause resume reverse', markers: false },
+    trigger: target, endTrigger: target, scroller: document.documentElement, pin: target, animation: tween,
+    start: 100, end: 700, progress: .35, direction: 1, isActive: true,
+    enabled: () => true,
+  };
+  window.ScrollTrigger = { version: '3.13.0-fixture', getAll: () => [trigger] };
+  window.gsap = {
+    version: '3.13.0-fixture', globalTimeline: timeline,
+    core: { globals: () => ({ ScrollTrigger: window.ScrollTrigger }) },
+  };
+</script></body></html>

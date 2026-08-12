@@ -1,0 +1,4 @@
+@keyframes phase-b-cross-origin {
+  from { opacity: 0.25; }
+  to { opacity: 0.75; }
+}

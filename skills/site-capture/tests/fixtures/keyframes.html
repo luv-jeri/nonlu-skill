@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Phase B keyframes fixture</title>
+<link rel="stylesheet" href="http://localhost:8973/keyframes-external.css">
+<style>
+  @property --phase-b-progress { syntax: '<number>'; inherits: false; initial-value: 0; }
+  @layer phase-b-motion {
+    @media (min-width: 600px) {
+      @supports (transform: translateX(1px)) {
+        @keyframes phase-b-orbit {
+          from { transform: translateX(0); --phase-b-progress: 0; }
+          45% { transform: translateX(42px); --phase-b-progress: .45; }
+          to { transform: translateX(0); --phase-b-progress: 1; }
+        }
+      }
+    }
+  }
+  @layer phase-b-override {
+    @keyframes phase-b-orbit {
+      from { transform: translateX(0); }
+      to { transform: translateX(0); }
+    }
+  }
+  body { min-height: 105vh; display: grid; place-items: center; }
+  .phase-b-keyframes { width: 80px; height: 80px; background: #db2777; animation: phase-b-orbit 1.2s ease-in-out -200ms infinite alternate both; }
+  .phase-b-paused { animation-play-state: paused; }
+</style></head>
+<body><div class="phase-b-keyframes phase-b-paused"></div>
+<script>
+  const adopted = new CSSStyleSheet();
+  adopted.replaceSync('@keyframes phase-b-adopted { from { opacity: .2 } to { opacity: 1 } }');
+  document.adoptedStyleSheets = [...document.adoptedStyleSheets, adopted];
+  const host = document.createElement('div');
+  host.id = 'phase-b-shadow-host';
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: 'open' });
+  const shadowSheet = new CSSStyleSheet();
+  shadowSheet.replaceSync('@keyframes phase-b-shadow { from { opacity: .1 } to { opacity: .9 } } .shadow-target { animation: phase-b-shadow 2s linear infinite }');
+  shadow.adoptedStyleSheets = [shadowSheet];
+  shadow.innerHTML = '<div class="shadow-target">shadow</div>';
+  const phaseBWaapi = document.querySelector('.phase-b-keyframes').animate(
+    [{ rotate: '0deg', offset: 0 }, { rotate: '90deg', offset: .4 }, { rotate: '180deg', offset: 1 }],
+    { duration: 1600, easing: 'steps(4, end)', iterations: Infinity },
+  );
+  phaseBWaapi.id = 'phase-b-waapi';
+</script></body></html>
