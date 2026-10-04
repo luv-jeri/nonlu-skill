@@ -117,7 +117,7 @@ Finds the user's AI tools and the models they can use now (free first), asks int
 - `SKILL.md` — complete self-contained skill (iron laws, setup, intake Q1–Q9, plan format, run results, doctor, failure modes)
 - `scripts/crew.py` — one stdlib script: `detect` · `save-key` · `config` · `models` · `run` · `doctor` · `selftest` (60 offline tests; a fake route stands in for real AI tools)
 - `LEARNINGS.md` — its own mistake log
-- `tests/`, `evals/evals.json` — 28 asserts, 20 deterministic
+- `tests/`, `evals/evals.json` — 28 asserts, 21 deterministic
 - Spec and plan: `docs/superpowers/specs/2026-10-05-model-crew-design.md`, `docs/superpowers/plans/2026-10-05-model-crew.md`
 
 **Worker flags are verified per tool version** (the `ROUTES` table in `crew.py`, dated). When a tool changes its CLI, `crew.py doctor` check D10 reports it; fix `ROUTES` only, since D10 reads the same table.
