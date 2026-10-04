@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
-This is a Claude Code plugin / Agent Skills package. No application code — only markdown skill files, JSON metadata, and documentation. Seven skills ship: `boost`, `pixel`, `qa-shield`, `qa-watch`, `skill-smith`, `skill-evolve`, `recap`.
+This is a Claude Code plugin / Agent Skills package. No application code — only markdown skill files, JSON metadata, and documentation. Nine skills ship: `boost`, `pixel`, `qa-shield`, `qa-watch`, `skill-smith`, `skill-evolve`, `recap`, `site-capture`, `model-crew`.
 
 ## Key Rules
 
 - Each skill lives in `skills/<name>/` with a `SKILL.md`, plus optional `references/`, `examples/`, `patterns/`, and `tests/`.
-- SKILL.md frontmatter needs three fields: `name`, `description`, and `user-invokable: true`. Six skills are slash-command only; `recap` is additionally model-invocable because its end-of-work branch has to fire without being typed (justification recorded in `skills/recap/tests/eval-triggers.md`).
+- SKILL.md frontmatter needs three fields: `name`, `description`, and `user-invokable: true`. Six skills are slash-command only; `recap` is additionally model-invocable because its end-of-work branch has to fire without being typed (justification recorded in `skills/recap/tests/eval-triggers.md`), and so is `model-crew`, because its users ask "which free models can I use?" without knowing the skill's name (`skills/model-crew/tests/eval-triggers.md`).
 - Every skill ships with a `LEARNINGS.md` (dated mistake log, appended the moment the skill errs) and a "Learning capture" footer in SKILL.md — `/skill-evolve` absorbs entries into skill edits with human approval. New skills get this wired by `/skill-smith` automatically (its iron law 5).
 - Description field = ONLY trigger conditions ("Use when user invokes /x"), NEVER a process summary. This is the string Claude matches on to fire the skill (Claude Search Optimization); a description that summarizes the process instead of the trigger mis-fires.
 - Each skill MUST create a TodoWrite checklist at start for step tracking.
@@ -111,6 +111,17 @@ Website experience capture engine — studies a reference site (frames, styles, 
 - `tests/` — fixture suite (`run-fixture-test.sh`: full capture + kill-9 orphan check) + unit tests
 - `LEARNINGS.md` — its own mistake log
 
+### Model Crew (`skills/model-crew/`) — self-contained pattern
+Finds the user's AI tools and the models they can use now (free first), asks intake questions one at a time, writes a staged plan, and runs its parts in parallel on worker models through their headless CLIs.
+
+- `SKILL.md` — complete self-contained skill (iron laws, setup, intake Q1–Q9, plan format, run results, doctor, failure modes)
+- `scripts/crew.py` — one stdlib script: `detect` · `save-key` · `config` · `models` · `run` · `doctor` · `selftest` (66 offline tests; a fake route stands in for real AI tools)
+- `LEARNINGS.md` — its own mistake log
+- `tests/`, `evals/evals.json` — 28 asserts, 21 deterministic
+- Spec and plan: `docs/superpowers/specs/2026-10-05-model-crew-design.md`, `docs/superpowers/plans/2026-10-05-model-crew.md`
+
+**Worker flags are verified per tool version** (the `ROUTES` table in `crew.py`, dated). When a tool changes its CLI, `crew.py doctor` check D10 reports it; fix `ROUTES` only, since D10 reads the same table.
+
 ### Skill Evolve (`skills/skill-evolve/`) — self-contained pattern
 Capture skill mistakes instantly; upgrade skills via classified evidence + approved diff (never silent self-editing).
 
@@ -120,7 +131,7 @@ Capture skill mistakes instantly; upgrade skills via classified evidence + appro
 
 ## Making Changes
 
-1. Identify the skill's pattern first. For self-contained skills (qa-shield, qa-watch, skill-smith, skill-evolve), SKILL.md IS the process — edit it directly. For routers (boost, pixel), edit the relevant `references/*.md`; SKILL.md only changes when the step index changes.
+1. Identify the skill's pattern first. For self-contained skills (qa-shield, qa-watch, skill-smith, skill-evolve, recap, model-crew), SKILL.md IS the process — edit it directly. For routers (boost, pixel), edit the relevant `references/*.md`; SKILL.md only changes when the step index changes.
 2. Run `tests/eval-triggers.md` mentally — would any trigger behavior change?
 3. Update `tests/eval-quality.md` if grading criteria changed.
 4. Verify against the skill's pattern: for self-contained skills, could Claude execute the full process without reading ANY reference file? For routers, does every step in SKILL.md still point to a real reference file?

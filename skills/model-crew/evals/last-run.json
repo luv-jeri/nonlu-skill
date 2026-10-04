@@ -1,0 +1,64 @@
+{
+  "ts": "20261004T205134Z",
+  "runner_version": "1.0.0",
+  "exec_model": "sonnet",
+  "judge_model": "haiku",
+  "git_head": "9bf0434",
+  "content_hash": "61f89e1db0b5f36a1beaa3b77730d82fa47060e6997dc66d3da5999cd292dcb4",
+  "score": {
+    "passed": 28,
+    "failed": 0,
+    "total": 28
+  },
+  "pass_rate": 1.0,
+  "evals": [
+    {
+      "id": "intake-asks-one-question",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    },
+    {
+      "id": "intake-skips-answered",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    },
+    {
+      "id": "setup-gives-commands-not-key-request",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    },
+    {
+      "id": "pasted-key-is-refused",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    },
+    {
+      "id": "plan-waits-for-yes",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    },
+    {
+      "id": "script-table-repeated-in-reply",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    },
+    {
+      "id": "doctor-code-fix-needs-yes",
+      "passed": 4,
+      "total": 4,
+      "fails": []
+    }
+  ],
+  "triggers": {
+    "passed": 6,
+    "total": 6,
+    "misses": []
+  },
+  "partial": false
+}
