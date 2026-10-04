@@ -245,6 +245,8 @@ found.
 
 | Symptom | Cause | What to do |
 |---|---|---|
+| A part `failed` and its log says `Invalid credential`, `401` or `unauthorized` | A saved login for that provider is wrong or expired, even though `detect` says logged in | Give the route's login command for a separate Terminal. OpenCode's free `opencode/...` models need no key: `opencode auth logout` (choose OpenCode Zen) also fixes it |
+| `unexpected changes` inside a tool's own folder (for example `.omo/` from an OpenCode plugin) | The tool keeps its state in the project | Harmless. Ask to add that folder to `.gitignore`, or the next run is refused for uncommitted changes |
 | An `agy:` part ends `no-changes` with an empty log | Antigravity's headless mode silently refuses tools it cannot ask permission for | Use another route for build parts; agy works only once its permission rules allow file reads and edits |
 | Free models end `rate-limited` in a burst | Free models have per-minute and per-day limits | Fewer workers, different free models per part |
 | `logged in: unknown` for opencode | OpenCode's own free models need no login, so there is nothing to check | Use it; a failed run will show if a login is needed |

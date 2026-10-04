@@ -34,3 +34,15 @@ covered by `python3 scripts/crew.py selftest`: 47 offline tests, no AI tools cal
 
 Once per release: a temp git repo, a one-part plan ("make index.html saying Hello") on one free OpenCode model,
 `crew.py run`, then open the page. Record the date, the model and the result here.
+
+### 2026-10-05 — opencode 1.18.34, macOS
+
+| Run | Model | Result |
+|---|---|---|
+| 1 | `opencode/fledge-alpha-free` | `failed` in 79 s: log said `Invalid credential`. A broken saved OpenCode Zen login on this Mac blocks even the free models. Rerun with a clean OpenCode data folder (`XDG_DATA_HOME`), which is the same as having no saved login. Added to Failure modes. |
+| 2 | `opencode/big-pickle` | `no-changes` in 56 s. The model replied "Created index.html" but wrote nothing; the script trusted the files, not the reply. |
+| 3 | `opencode/fledge-alpha-free` | **`done` in 24 s.** index.html holds "Hello from Model Crew"; the page opened and looks right. |
+
+Every run also flagged `.omo/run-continuation/*.json` as unexpected changes: an OpenCode plugin (oh-my-opencode)
+keeps its state in the project. Added to Failure modes. `--agent build` was tried to sidestep the plugin's agent and
+does not help: the plugin turns `build` into a sub-agent and OpenCode falls back to the plugin's default anyway.
