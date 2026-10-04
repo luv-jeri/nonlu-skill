@@ -1,7 +1,7 @@
 {
   "name": "boost",
-  "version": "1.1.0",
-  "description": "Agent skills for team velocity — /boost transforms rough prompts into structured prompts; /pixel turns Figma designs into pixel-perfect UI; /qa-shield catches attention-to-detail issues before QA; /qa-watch provides lightweight QA checks during development; /skill-smith creates new skills with tiered verification; /skill-evolve captures skill mistakes and upgrades skills with proof; /recap closes a unit of work with a visual capsule and a decision log.",
+  "version": "1.2.0",
+  "description": "Agent skills for team velocity — /boost transforms rough prompts into structured prompts; /pixel turns Figma designs into pixel-perfect UI; /qa-shield catches attention-to-detail issues before QA; /qa-watch provides lightweight QA checks during development; /skill-smith creates new skills with tiered verification; /skill-evolve captures skill mistakes and upgrades skills with proof; /recap closes a unit of work with a visual capsule and a decision log; /model-crew finds the AI models you can use and builds your task in parallel on free ones.",
   "license": "MIT",
   "author": "Sanjay Kumar",
   "keywords": [
@@ -37,7 +37,16 @@
     "design-inspiration",
     "motion-forensics",
     "site-recreation",
-    "playwright"
+    "playwright",
+    "model-crew",
+    "free-models",
+    "openrouter",
+    "opencode",
+    "antigravity",
+    "multi-agent",
+    "parallel-agents",
+    "model-selection",
+    "token-saving"
   ],
   "type": "module",
   "repository": {

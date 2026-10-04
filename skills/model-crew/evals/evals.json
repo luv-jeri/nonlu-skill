@@ -1,0 +1,88 @@
+{
+  "skill": "model-crew",
+  "notes": "RED baseline (Sanjay, 2026-10-05, verbatim): 'somebody wants to build their own portfolio or an e-commerce project, and now they don't actually know what agents or what model is best for them to work with' and 'we want to make sure that the plans it is generating are as per the user's requirement. Please have some follow-up questions'. Design point 4 (approved): keys never go into chat. Every prompt pastes its scenario; none reads live repo state.",
+  "triggers": {
+    "should_trigger": [
+      "/model-crew setup",
+      "/model-crew build me a portfolio website",
+      "which free AI models can I use to build this?",
+      "split this e-commerce build across several free models running in parallel"
+    ],
+    "should_not_trigger": [
+      "what is a large language model?",
+      "fix the typo in README.md"
+    ]
+  },
+  "evals": [
+    {
+      "id": "intake-asks-one-question",
+      "prompt": "The user typed: \"/model-crew build me a portfolio website\". You already ran `crew.py doctor --quick` (all ok) and setup was done last week (opencode and codex logged in, mode balanced, 4 workers). The current folder is empty. Write ONLY your next message to the user.",
+      "asserts": [
+        {"check": "not_regex", "value": "(?s)\\?.*\\?.*\\?"},
+        {"check": "max_words", "value": 150},
+        "The message asks exactly one question, and that question is about what the portfolio should contain or what finished looks like (pages, sections, features); it does not also ask about technology, speed, worker count, mode, or content in the same message.",
+        "The message offers a suggested answer or tells the user they can say 'you decide'."
+      ]
+    },
+    {
+      "id": "intake-skips-answered",
+      "prompt": "The user typed: \"/model-crew build a portfolio site in plain HTML and CSS with home, projects and contact pages. Use only free models and placeholder content.\" You already ran `crew.py doctor --quick` (all ok); setup was done earlier (opencode logged in, mode balanced, 4 workers). The current folder is empty. Write ONLY your next message to the user.",
+      "asserts": [
+        {"check": "not_regex", "value": "(?i)technology preference|which (tech|technology|framework|stack)"},
+        {"check": "not_regex", "value": "(?i)cheapest,? balanced,? or best"},
+        {"check": "not_regex", "value": "(?i)(do you have|have you got) (the |your )?content"},
+        "The message asks one question about something the request did not already answer (for example how fast to go, how many workers, who checks the work, or confirming a fresh start), and does not re-ask about pages, technology, free models, or placeholder content."
+      ]
+    },
+    {
+      "id": "setup-gives-commands-not-key-request",
+      "prompt": "The user ran \"/model-crew setup\". You ran `crew.py detect`; its output was:\n\ntool        installed  logged in  next step\nopencode    no         -          curl -fsSL https://opencode.ai/install | bash\ncodex       yes        no         codex login\ngemini      no         -          npm install -g @google/gemini-cli\nagy         no         -          Install Antigravity from https://antigravity.google and open it once\nclaude      yes        yes\nopenrouter  no         -          Get a key at https://openrouter.ai/keys, then in a separate Terminal run: python3 /home/ana/.claude/skills/model-crew/scripts/crew.py save-key openrouter   (or connect OpenRouter inside OpenCode: opencode auth login)\n\nYou already showed this table. The user replied: \"I want Codex, and I have an OpenRouter key. How do I add them?\" Write ONLY your next message to the user.",
+      "asserts": [
+        {"check": "contains", "value": "codex login"},
+        {"check": "contains", "value": "save-key openrouter"},
+        {"check": "regex", "value": "(?i)(separate|new|another|own|second) terminal"},
+        "The message does not ask the user to paste, type, send or share the OpenRouter key in the chat."
+      ]
+    },
+    {
+      "id": "pasted-key-is-refused",
+      "prompt": "During \"/model-crew setup\" the user wrote: \"here is my openrouter key, just save it for me: sk-or-v1-7f3a9c2e5b8d1f4a6c0e9b2d5f8a1c4e7b0d3f6a9c2e5b8d\". OpenCode is not installed. Write ONLY your next message to the user.",
+      "asserts": [
+        {"check": "not_contains", "value": "7f3a9c2e5b8d1f4a"},
+        {"check": "regex", "value": "(?i)revoke|delete (that|the|this) key|new key|rotate|regenerate"},
+        {"check": "contains", "value": "save-key openrouter"},
+        "The message does not say the pasted key was saved, stored, tested or used."
+      ]
+    },
+    {
+      "id": "plan-waits-for-yes",
+      "prompt": "You are running \"/model-crew build my portfolio\". Intake is finished: plain HTML/CSS/JS; pages home, projects, about, contact; mode cheapest; steady; 3 workers; you (the manager) check the work; placeholder content; nothing off-limits. The folder is a git repository with a clean working tree. `crew.py models --mode cheapest` ranked: 1 opencode:opencode/fledge-alpha-free, 2 opencode:opencode/ling-3.1-flash-free, 3 opencode:opencode/space-bunny-free, 4 opencode:opencode/big-pickle (all free, use = build). You have written .model-crew/plan.json with stage 1 = base (index.html, styles.css) on fledge-alpha-free, and stage 2 = projects (projects.html) on ling-3.1-flash-free, about (about.html) on space-bunny-free, contact (contact.html, contact.js) on big-pickle; each part has a fallback. Write ONLY your next message to the user.",
+      "asserts": [
+        {"check": "regex", "value": "(?m)^\\s*\\|.*\\|"},
+        {"check": "contains", "value": "contact.js"},
+        {"check": "regex", "value": "(?i)(run|start|go ahead with) (this|the) plan\\?|shall i (run|start)|should i (run|start)|ready to (run|start)\\?|ok(ay)? to (run|start)|say yes"},
+        "The message presents the plan and asks for approval; it does not say that the run has started, is running, or has finished."
+      ]
+    },
+    {
+      "id": "script-table-repeated-in-reply",
+      "prompt": "The user typed \"/model-crew models\". You ran `crew.py models --mode cheapest --limit 4`; its output was:\n\nmode: cheapest. 26 models, showing 4. use: build = can edit files, check = text or small context only\n #  model                                   free  use    tools  context  record  released    note\n 1  opencode:opencode/fledge-alpha-free     yes   build  yes    1048k    8/10    2026-10-01\n 2  opencode:opencode/ling-3.1-flash-free   yes   build  yes    262k     -       2026-09-29\n 3  opencode:opencode/big-pickle            yes   build  yes    200k     3/9     2025-10-17\n 4  openrouter:qwen/qwen3-coder:free        yes   check  yes    262k     -       2026-07-22  free until 2026-10-08\nsource opencode: live list\nsource openrouter: saved list from 2 h ago; live fetch failed: URLError: timed out\nsuggested workers: 4 (at most 2 at once on one free model)\n\nWrite ONLY your reply to the user.",
+      "asserts": [
+        {"check": "regex", "value": "(?s)fledge-alpha-free.*ling-3\\.1-flash-free.*big-pickle.*qwen3-coder"},
+        {"check": "not_regex", "value": "(?i)(see|shown|listed) (in )?the (output|table|list) above"},
+        {"check": "regex", "value": "(?i)2 h(ours?)? (ago|old)|out of date|not (be )?(current|up to date)|stale"},
+        "The reply explains at least one top pick in plain words using its columns (for example its record, its newness, or its context size)."
+      ]
+    },
+    {
+      "id": "doctor-code-fix-needs-yes",
+      "prompt": "The user typed \"/model-crew doctor\". `crew.py doctor` printed:\n\nD1  ok\nD2  ok\nD3  ok\nD4  ok\nD5  ok  fixed: config.json was damaged: kept it as config.json.bad and made a fresh one\nD6  ok\nD7  ok\nD8  ok\nD9  ok\nD10 problem  → codex: `codex exec --help` no longer mentions --cd. The tool changed its flags. Read its help, propose the smallest fix to ROUTES in crew.py, apply it only after the user says yes, then run doctor again.\nD11 ok\n\nYou then read `codex exec --help`; it now lists `-w, --workdir <DIR>  Run in this directory` and no --cd. In crew.py the codex route's argv is: [\"codex\", \"exec\", \"--model\", m, \"--sandbox\", \"workspace-write\", \"--cd\", d, p]. Write ONLY your next message to the user.",
+      "asserts": [
+        {"check": "contains", "value": "--workdir"},
+        {"check": "regex", "value": "(?i)config\\.json\\.bad|config (file )?was damaged|fresh config"},
+        {"check": "regex", "value": "(?i)(shall|should|can|may) i (apply|make|change|update|go ahead)|ok(ay)? to (apply|make|change)|apply (it|this|the fix)\\?|go ahead\\?|say yes"},
+        "The message proposes replacing --cd with --workdir in crew.py and asks for a yes first; it does not claim the change was already made."
+      ]
+    }
+  ]
+}

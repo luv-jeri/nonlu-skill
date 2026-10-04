@@ -13,13 +13,14 @@
   <img src="https://img.shields.io/badge/%F0%9F%94%A8_Skill_Smith-Tiered_Skill_Creator-purple?style=for-the-badge" alt="Skill Smith" />
   <img src="https://img.shields.io/badge/%F0%9F%8C%B1_Skill_Evolve-Skills_That_Learn-teal?style=for-the-badge" alt="Skill Evolve" />
   <img src="https://img.shields.io/badge/%F0%9F%93%8B_Recap-Visual_Work_Summary-crimson?style=for-the-badge" alt="Recap" />
+  <img src="https://img.shields.io/badge/%F0%9F%91%A5_Model_Crew-Free_Models_in_Parallel-darkgreen?style=for-the-badge" alt="Model Crew" />
 </p>
 
 <p align="center">
   <a href="#-quick-start"><img src="https://img.shields.io/badge/Get_Started-2_min_setup-success?style=flat-square" alt="Get Started" /></a>
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License" />
-  <img src="https://img.shields.io/badge/skills-7-blue?style=flat-square" alt="7 Skills" />
-  <img src="https://img.shields.io/badge/evals-82_asserts-brightgreen?style=flat-square" alt="82 eval asserts" />
+  <img src="https://img.shields.io/badge/skills-9-blue?style=flat-square" alt="9 Skills" />
+  <img src="https://img.shields.io/badge/evals-110_asserts-brightgreen?style=flat-square" alt="110 eval asserts" />
   <img src="https://img.shields.io/badge/runtime-markdown_%2B_python_stdlib-orange?style=flat-square" alt="Markdown plus Python stdlib" />
   <img src="https://img.shields.io/badge/Agent_Skills_Spec-compliant-brightgreen?style=flat-square" alt="Agent Skills Spec" />
 </p>
@@ -33,7 +34,8 @@
   <code>/qa-watch</code> — Catch issues as you build, not after<br/>
   <code>/skill-smith</code> — Stop hand-rolling skills that never fire<br/>
   <code>/skill-evolve</code> — Stop letting your skills repeat the same mistake<br/>
-  <code>/recap</code> — Stop reading walls of text to find out what changed
+  <code>/recap</code> — Stop reading walls of text to find out what changed<br/>
+  <code>/model-crew</code> — Stop guessing which AI model to use; build with free ones in parallel
 </p>
 
 ---
@@ -51,6 +53,7 @@
 | :hammer: | **Skill Smith** | `/skill-smith` | Creates new skills with the right ceremony — quick, standard, or hardened tier |
 | :seedling: | **Skill Evolve** | `/skill-evolve` | Captures a skill's mistakes and upgrades the skill with proof, never silently |
 | :clipboard: | **Recap** | `/recap` | Closes a unit of work with a visual capsule and a decision log instead of a wall of text |
+| :busts_in_silhouette: | **Model Crew** | `/model-crew` | Finds every AI model you can use (free ones first), asks what you want, and builds the task in parallel on free models while your main agent only plans and checks |
 | :movie_camera: | **Site Capture** | `/site-capture` | Studies an award-level site like a movie — design, motion, shaders, scroll and cursor feel — into an evidence folder plus a RECREATE report, with measurement forensics and a see-judge-iterate recreation review loop |
 
 <br/>
@@ -510,6 +513,50 @@ identical enforcement everywhere, and this one does not pretend to.
 
 <br/>
 
+## :busts_in_silhouette: Model Crew — Free Models, Working in Parallel
+
+`/model-crew` answers "which AI model should I use for this?" and then does the work with
+the free ones. It finds every AI tool you already have (OpenCode, OpenRouter, Codex, Gemini
+CLI, Antigravity, Claude Code), lists the models you can use **right now** with free ones
+first, asks you a few short questions, and splits your task across several free models
+running at the same time. Your main agent only plans and checks, so you spend far fewer
+paid tokens.
+
+```
+/model-crew setup                 # find your tools, log in, pick a default mode
+/model-crew build my portfolio    # ask → pick models → plan → your yes → build → check
+/model-crew models                # ranked list of models you can use now
+/model-crew doctor                # check the skill itself and fix what is safe to fix
+```
+
+**Three design choices worth knowing before you use it:**
+
+1. **Your API keys never go into the chat.** Setup gives you a command to run in your own
+   Terminal window; the key is typed there with hidden typing and saved readable only by you.
+2. **It asks before it plans, and plans before it runs.** One question at a time (say
+   *you decide* to skip the rest), then a plan table, then nothing happens until you say yes.
+3. **Live lists, cached.** Model lists are fetched live and saved for 10 minutes; when a
+   provider is down you see the saved list and how old it is. Each model also builds a
+   track record ("finished 8 of its last 10 jobs") that moves the reliable ones up.
+
+| Mode | Workers | Your main agent |
+|---|---|---|
+| cheapest | free models only | plans, light check |
+| balanced *(default)* | free models | plans, checks, fixes small things |
+| best | paid models allowed | plans, checks |
+
+**Honest limitations:** macOS and Linux only (workers run in process groups, which work
+differently on Windows). Workers share one folder, so parts that run at the same time must
+own different files, and the run refuses to start outside git or with uncommitted changes,
+so every change can be undone. Antigravity's headless mode silently refuses file tools
+until its permission rules allow them.
+
+<br/>
+
+---
+
+<br/>
+
 ## :zap: Quick Start
 
 ### 1. Clone
@@ -528,7 +575,7 @@ your edits stay in one place; copies fork silently and drift.
 <summary><strong>Claude Code</strong> (verified)</summary>
 
 ```bash
-for s in boost pixel qa-shield qa-watch skill-smith skill-evolve recap; do
+for s in boost pixel qa-shield qa-watch skill-smith skill-evolve recap model-crew; do
   ln -sfn "$(pwd)/skills/$s" ~/.claude/skills/"$s"
 done
 ls -l ~/.claude/skills/ | grep nonlu   # confirm the links resolve
@@ -539,7 +586,7 @@ ls -l ~/.claude/skills/ | grep nonlu   # confirm the links resolve
 <summary><strong>OpenAI Codex</strong> (verified loading)</summary>
 
 ```bash
-for s in boost pixel qa-shield qa-watch skill-smith skill-evolve recap; do
+for s in boost pixel qa-shield qa-watch skill-smith skill-evolve recap model-crew; do
   ln -sfn "$(pwd)/skills/$s" ~/.codex/skills/"$s"
 done
 ```
@@ -571,6 +618,7 @@ what that means for the rest.
 ```bash
 python3 skills/skill-evolve/scripts/run_evals.py --selftest   # runner works offline
 python3 skills/recap/scripts/recap.py selftest                # recap's format checker
+python3 skills/model-crew/scripts/crew.py selftest            # model-crew's 47 offline tests
 ```
 
 ### 4. Use
@@ -583,6 +631,8 @@ python3 skills/recap/scripts/recap.py selftest                # recap's format c
 /skill-smith                     # create a new skill
 /skill-evolve <skill>            # improve one from recorded evidence
 /recap                           # visual summary of what just happened
+/model-crew setup                # find your AI tools and their free models
+/model-crew build my portfolio   # ask, plan, then build in parallel on free models
 ```
 
 <br/>
@@ -603,9 +653,11 @@ nonlu-skill/
 │   ├── skill-smith/            # self-cont. 121 lines  /skill-smith
 │   ├── skill-evolve/           # self-cont. 99 lines   /skill-evolve
 │   │   └── scripts/run_evals.py    # the eval runner every skill is tested by
-│   └── recap/                  # self-cont. 226 lines  /recap
-│       ├── scripts/recap.py        # journal, format check, Stop gate, HTML export
-│       └── template.html           # fixed shell for /recap --open
+│   ├── recap/                  # self-cont. 226 lines  /recap
+│   │   ├── scripts/recap.py        # journal, format check, Stop gate, HTML export
+│   │   └── template.html           # fixed shell for /recap --open
+│   └── model-crew/             # self-cont. 277 lines  /model-crew
+│       └── scripts/crew.py         # detect tools, live ranked models + cache, parallel run, doctor
 │
 │   every skill folder also carries:
 │       SKILL.md                    # frontmatter + the skill itself
@@ -624,16 +676,17 @@ nonlu-skill/
 
 **Two SKILL.md patterns, and it matters which one you're editing.**
 
-- **Self-contained** (qa-shield, qa-watch, skill-smith, skill-evolve, recap) — SKILL.md
+- **Self-contained** (qa-shield, qa-watch, skill-smith, skill-evolve, recap, model-crew) — SKILL.md
   holds the whole process. `references/` is supplementary detail. This is the target for
   new skills.
 - **Router** (boost, pixel) — SKILL.md is a short index that delegates each step to a
   `references/*.md` file. Here the reference files **are** load-bearing: changing
   behaviour means editing the reference, not SKILL.md.
 
-**Dependencies:** markdown plus Python 3 standard library. Two skills ship a script
-(`recap.py`, `run_evals.py`); nothing to `pip install`, no third-party packages, no
-network calls at skill runtime.
+**Dependencies:** markdown plus Python 3 standard library. Three skills ship a script
+(`recap.py`, `run_evals.py`, `crew.py`); nothing to `pip install`, no third-party packages.
+Only `crew.py` uses the network: OpenRouter's public model list, and the AI tools you
+already have installed.
 
 <br/>
 
@@ -661,6 +714,7 @@ Exit 0 means green. `--selftest` proves the runner itself works offline.
 | skill-smith | 6 | 11 |
 | skill-evolve | 6 | 8 |
 | recap | 6 | 22 |
+| model-crew | 7 | 28 |
 
 **How an assert is graded.** Deterministic checks (`contains`, `not_contains`, `regex`,
 `not_regex`, `max_words`, `min_words`) run natively. Anything left over is prose, graded
