@@ -115,7 +115,7 @@ Website experience capture engine — studies a reference site (frames, styles, 
 Finds the user's AI tools and the models they can use now (free first), asks intake questions one at a time, writes a staged plan, and runs its parts in parallel on worker models through their headless CLIs.
 
 - `SKILL.md` — complete self-contained skill (iron laws, setup, intake Q1–Q9, plan format, run results, doctor, failure modes)
-- `scripts/crew.py` — one stdlib script: `detect` · `save-key` · `config` · `models` · `run` · `doctor` · `selftest` (60 offline tests; a fake route stands in for real AI tools)
+- `scripts/crew.py` — one stdlib script: `detect` · `save-key` · `config` · `models` · `run` · `doctor` · `selftest` (66 offline tests; a fake route stands in for real AI tools)
 - `LEARNINGS.md` — its own mistake log
 - `tests/`, `evals/evals.json` — 28 asserts, 21 deterministic
 - Spec and plan: `docs/superpowers/specs/2026-10-05-model-crew-design.md`, `docs/superpowers/plans/2026-10-05-model-crew.md`

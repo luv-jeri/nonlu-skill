@@ -618,7 +618,7 @@ what that means for the rest.
 ```bash
 python3 skills/skill-evolve/scripts/run_evals.py --selftest   # runner works offline
 python3 skills/recap/scripts/recap.py selftest                # recap's format checker
-python3 skills/model-crew/scripts/crew.py selftest            # model-crew's 60 offline tests
+python3 skills/model-crew/scripts/crew.py selftest            # model-crew's 66 offline tests
 ```
 
 ### 4. Use

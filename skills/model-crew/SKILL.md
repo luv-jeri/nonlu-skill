@@ -233,7 +233,7 @@ favourite: `python3 $CREW config --favourite build=<model id>`.
 | D6 | Saved model lists and history readable | Fixed automatically (damaged ones deleted) |
 | D7 | Key file readable only by the user | Fixed automatically (`chmod 600`) |
 | D8 | OpenRouter reachable | Saved lists still work; just tell the user |
-| D9 | Favourite models still exist | Fixed automatically (replaced with the top model on the same route) |
+| D9 | Favourite models still exist | Fixed automatically (replaced with the top model on the same route), but only when the model lists were fetched live; if a tool is away or offline, the favourite is kept and reported |
 | D10 | Each tool still has the flags workers use | **Code fix after a yes** (below) |
 | D11 | A run lock or workers left by a stopped run | Fixed automatically (only that run's own processes) |
 

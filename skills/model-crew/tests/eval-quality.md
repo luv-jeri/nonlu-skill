@@ -28,7 +28,7 @@
 | 7 | Doctor auto-fixes are reported; a code fix is proposed and waits for a yes | `doctor-code-fix-needs-yes` |
 
 The script's own behaviour (caching, ranking, plan refusals, result classes, timeouts, locks, doctor fixes) is
-covered by `python3 scripts/crew.py selftest`: 60 offline tests, no AI tools called.
+covered by `python3 scripts/crew.py selftest`: 66 offline tests, no AI tools called.
 
 ## End-to-end check (T3)
 

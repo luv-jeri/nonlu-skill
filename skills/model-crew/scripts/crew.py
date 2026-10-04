@@ -17,6 +17,7 @@ import getpass
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import shlex
@@ -96,8 +97,10 @@ def read_json(path, keep_bad=False):
 
 
 def _good_cache(d):
-    return (isinstance(d, dict) and isinstance(d.get("models"), list) and isinstance(d.get("fetched_at"), (int, float))
-            and all(isinstance(m, dict) and isinstance(m.get("id"), str) for m in d["models"]))
+    keys = _model("claude", "x").keys()  # every field the listing and ranking code reads
+    return (isinstance(d, dict) and isinstance(d.get("models"), list)
+            and isinstance(d.get("fetched_at"), (int, float)) and math.isfinite(d["fetched_at"])
+            and all(isinstance(m, dict) and isinstance(m.get("id"), str) and keys <= m.keys() for m in d["models"]))
 
 
 def cached_fetch(source, fetch, refresh=False, now=time.time):
@@ -116,7 +119,7 @@ def cached_fetch(source, fetch, refresh=False, now=time.time):
     try:
         models = fetch()
     except Exception as e:  # any failure of a tool or the network falls back to the saved copy
-        info["error"] = f"{type(e).__name__}: {e}"[:300]
+        info["error"] = _hide_key(f"{type(e).__name__}: {e}")[:300]
         return (saved["models"] if saved else []), info
     write_json_atomic(path, {"fetched_at": t, "models": models})
     info.update(fetched_at=t, age_s=0, live=True)
@@ -373,6 +376,12 @@ def openrouter_key():
             return None
     # A key with spaces, line breaks or odd bytes would end up quoted inside urllib's "Invalid header" error.
     return key if re.fullmatch(r"[\x21-\x7e]+", key) else None
+
+
+def _hide_key(text):
+    """An error message that quotes the OpenRouter key (an echoed request, a proxy page) never reaches a log or chat."""
+    key = openrouter_key()
+    return text.replace(key, "[key hidden]") if key else text
 
 
 def _key_status(key):
@@ -671,6 +680,8 @@ def _bad_path(root, f):
         return "points outside the project (through a link)"
     if p.parts[0] in (".git", ".model-crew") or real.relative_to(root).parts[:1] in ((".git",), (".model-crew",)):
         return "is a tool folder, not a project file"
+    if real != root / p:  # two names for one file would let two parts edit it at once, and git reports the real one
+        return f"goes through a link; name the real path, {real.relative_to(root).as_posix()}"
     # ponytail: links inside an owned folder are not followed here; this check routes work, it is not a sandbox.
     return None
 
@@ -875,7 +886,7 @@ class _Run:
                     log.write(f"could not start {argv[0]}: {e}\n".encode())
                     return 127, False
                 self.procs[key] = p
-                self.status["pids"][key] = {"pid": p.pid, "binary": Path(argv[0]).name}
+                self.status["pids"][key] = {"pid": p.pid, "binary": Path(argv[0]).name, "started": _started(p.pid)}
             try:
                 self.save()
                 return p.wait(timeout=limit_s), False
@@ -1075,13 +1086,14 @@ def cmd_ask(args):
     try:
         data = _http("/chat/completions", key=key, body=body, timeout=900)
     except urllib.error.HTTPError as e:
-        print(f"OpenRouter answered HTTP {e.code}: {e.read()[:300].decode('utf-8', 'replace')}")
+        # hidden before cutting, so a key that straddles the cut leaves no prefix behind
+        print(f"OpenRouter answered HTTP {e.code}: {_hide_key(e.read(65536).decode('utf-8', 'replace'))[:300]}")
         return 1
     except (OSError, ValueError) as e:
-        print(f"Could not reach OpenRouter: {e}")
+        print(_hide_key(f"Could not reach OpenRouter: {e}"))
         return 1
     if data.get("error"):
-        print(f"OpenRouter error: {json.dumps(data['error'])[:500]}")
+        print(_hide_key(f"OpenRouter error: {json.dumps(data['error'])}")[:500])
         return 1
     text = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
     if not text:
@@ -1199,14 +1211,18 @@ def _d9(ctx):
     cfg = load_config()
     if not cfg["favourites"]:
         return True, None, None
-    models, _ = list_models(_rows(ctx))
+    models, infos = list_models(_rows(ctx))
     ids, fixed, problems = {m["id"] for m in models}, [], []
+    offline = [i["source"] for i in infos if i["error"]]  # an old saved list cannot prove a model is gone
     for role, mid in list(cfg["favourites"].items()):
         if mid in ids:
             continue
         route = mid.split(":", 1)[0]
         same = rank([m for m in models if m["route"] == route], "best")
-        if same:
+        if same and offline:
+            problems.append(f"favourite {role}: {mid} is not in the saved model list, and {', '.join(offline)} could "
+                            "not be reached to check; run doctor again when online")
+        elif same:
             cfg["favourites"][role] = same[0]["id"]
             fixed.append(f"favourite {role}: {mid} is gone, now {same[0]['id']}")
         else:  # kept: the tool may be logged out or offline for now
@@ -1245,8 +1261,9 @@ def _session_leader(pid):
         return False
 
 
-def _command_of(pid):
-    r = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True)
+def _started(pid):
+    """When this pid's process started, as ps prints it; "" once it has exited. A reused pid has a later start."""
+    r = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True)
     return r.stdout.strip()
 
 
@@ -1256,27 +1273,31 @@ def _d11(ctx):
     holder = _read_pid(lock) if lock.exists() else None
     if holder and _alive(holder):
         return True, None, None  # a run is working right now; leave it alone
-    fixed = []
+    fixed, problems = [], []
     if lock.exists():
         lock.unlink(missing_ok=True)
         fixed.append("removed a run lock left by a stopped run")
     for status_path in sorted(mc.glob("runs/*/status.json")):
+        if not status_path.resolve().is_relative_to(ctx["project"] / ".model-crew" / "runs"):
+            problems.append(f"run {status_path.parent.name} links outside this project, so doctor left it alone")
+            continue
         st = read_json(status_path)
         if not isinstance(st, dict) or st.get("state") != "running":
             continue
         killed = 0
-        for entry in (st.get("pids") or {}).values():
-            pid, binary = entry.get("pid"), entry.get("binary") or ""
-            # Only pids this run recorded, only if that pid still runs the same tool, and only if it still leads its
-            # own session as every worker does (pids get reused; a reused one is almost never a session leader).
-            if isinstance(pid, int) and _alive(pid) and _session_leader(pid) and binary and binary in _command_of(pid):
+        pids = st.get("pids")
+        for entry in (pids.values() if isinstance(pids, dict) else ()):
+            pid, started = (entry.get("pid"), entry.get("started")) if isinstance(entry, dict) else (None, None)
+            # Only pids this run recorded, only while the same process still runs (same start time, so a reused pid
+            # never matches), and only if it still leads its own session as every worker does.
+            if isinstance(pid, int) and started and _started(pid) == started and _session_leader(pid):
                 _kill_group(pid)
                 killed += 1
         st["state"], st["pids"] = "interrupted", {}
         write_json_atomic(status_path, st)
         fixed.append(f"marked run {st.get('run')} interrupted" + (f" and stopped {killed} leftover worker(s)"
                                                                   if killed else ""))
-    return True, "; ".join(fixed) or None, None
+    return not problems, "; ".join(fixed) or None, "; ".join(problems) or None
 
 
 CHECKS = [("D1", _d1), ("D2", _d2), ("D3", _d3), ("D4", _d4), ("D5", _d5), ("D6", _d6), ("D7", _d7), ("D8", _d8),
@@ -1365,15 +1386,15 @@ def test_atomic_write_leaves_no_temp(tmp):
 
 
 def test_cache_fresh_is_used_without_fetch(tmp):
-    cached_fetch("s", lambda: [{"id": "x"}], now=lambda: 1000)
+    cached_fetch("s", lambda: [_model("claude", "x")], now=lambda: 1000)
     models, info = cached_fetch("s", lambda: 1 / 0, now=lambda: 1000 + FRESH_S - 1)
-    assert models == [{"id": "x"}] and not info["live"] and info["error"] is None
+    assert models == [_model("claude", "x")] and not info["live"] and info["error"] is None
 
 
 def test_cache_stale_refetches(tmp):
-    cached_fetch("s", lambda: [{"id": "1"}], now=lambda: 1000)
-    models, info = cached_fetch("s", lambda: [{"id": "2"}], now=lambda: 1000 + FRESH_S + 1)
-    assert models == [{"id": "2"}] and info["live"]
+    cached_fetch("s", lambda: [_model("claude", "1")], now=lambda: 1000)
+    models, info = cached_fetch("s", lambda: [_model("claude", "2")], now=lambda: 1000 + FRESH_S + 1)
+    assert models == [_model("claude", "2")] and info["live"]
 
 
 def _offline():
@@ -1381,9 +1402,9 @@ def _offline():
 
 
 def test_cache_falls_back_on_fetch_error_with_age(tmp):
-    cached_fetch("s", lambda: [{"id": "1"}], now=lambda: 1000)
+    cached_fetch("s", lambda: [_model("claude", "1")], now=lambda: 1000)
     models, info = cached_fetch("s", _offline, now=lambda: 1000 + 7200)
-    assert models == [{"id": "1"}] and info["age_s"] == 7200 and "no network" in info["error"]
+    assert models == [_model("claude", "1")] and info["age_s"] == 7200 and "no network" in info["error"]
     assert _source_line(info) == "s: saved list from 2 h ago; live fetch failed: OSError: no network"
 
 
@@ -1957,6 +1978,72 @@ def test_session_leader_tells_workers_from_reused_pids(tmp):
         for c in (own, plain):
             c.kill()
             c.wait()
+
+
+# Second review (2026-10-05)
+
+def test_key_is_hidden_in_error_text(tmp):
+    os.environ["OPENROUTER_API_KEY"] = "sk-or-v1-secret"
+
+    def fail():
+        raise OSError("proxy said: bad token sk-or-v1-secret")
+    _, info = cached_fetch("s", fail, now=lambda: 1)
+    assert "sk-or-v1-secret" not in info["error"] and "[key hidden]" in info["error"]
+
+
+def test_cache_needs_every_model_field_and_a_real_time(tmp):
+    assert _good_cache({"fetched_at": 1, "models": [_model("claude", "x")]})
+    assert not _good_cache({"fetched_at": 1, "models": [{"id": "claude:x"}]})
+    assert not _good_cache({"fetched_at": float("nan"), "models": []})
+
+
+def test_plan_refuses_two_names_for_one_file(tmp):
+    proj = _git_repo(tmp)
+    (proj / "src").mkdir()
+    (proj / "alias").symlink_to(proj / "src")
+    out = _refusals(tmp, [[_part("a", "writes=src/a.txt", ["src/a.txt"]),
+                           _part("b", "writes=alias/a.txt", ["alias/a.txt"])]], proj=proj)
+    assert "goes through a link; name the real path, src/a.txt" in out
+
+
+def test_doctor_waits_to_change_favourites_while_offline(tmp):
+    cfg = load_config()
+    cfg["favourites"] = {"build": "opencode:opencode/old"}
+    save_config(cfg)
+    _patch(M, "detect", lambda save=False: [])
+    _patch(M, "list_models", lambda rows, refresh=False: ([_model("opencode", "opencode/new")],
+                                                          [{"source": "opencode", "error": "URLError: offline"}]))
+    r = doctor(quick=False, project=tmp, only={"D9"})[0]
+    assert not r["ok"] and "could not be reached" in r["action"]
+    assert load_config()["favourites"] == {"build": "opencode:opencode/old"}
+
+
+def test_doctor_stops_only_the_recorded_worker(tmp):
+    run_dir = tmp / "p" / ".model-crew" / "runs" / "r1"
+    run_dir.mkdir(parents=True)
+    sleep = [sys.executable, "-c", "import time; time.sleep(30)"]
+    worker, reused = (subprocess.Popen(sleep, start_new_session=True) for _ in range(2))
+    try:
+        write_json_atomic(run_dir / "status.json", {"run": "r1", "state": "running", "stages": [], "pids": {
+            "a": {"pid": worker.pid, "started": _started(worker.pid)},
+            "b": {"pid": reused.pid, "started": "Thu Jan  1 00:00:00 1970"}}})
+        r = doctor(quick=True, project=tmp / "p", only={"D11"})[0]
+        assert "stopped 1 leftover" in r["fixed"] and worker.wait(timeout=10) is not None and reused.poll() is None
+    finally:
+        for c in (worker, reused):
+            c.kill()
+            c.wait()
+
+
+def test_doctor_leaves_a_linked_run_folder_alone(tmp):
+    outside = tmp / "outside"
+    write_json_atomic(outside / "status.json", {"run": "x", "state": "running", "pids": {}})
+    runs = tmp / "p" / ".model-crew" / "runs"
+    runs.mkdir(parents=True)
+    (runs / "r1").symlink_to(outside)
+    r = doctor(quick=True, project=tmp / "p", only={"D11"})[0]
+    assert not r["ok"] and "links outside" in r["action"]
+    assert read_json(outside / "status.json")["state"] == "running"
 
 
 def main(argv=None):
