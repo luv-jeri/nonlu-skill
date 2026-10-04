@@ -95,12 +95,16 @@ def read_json(path, keep_bad=False):
         return None
 
 
+def _good_cache(d):
+    return (isinstance(d, dict) and isinstance(d.get("models"), list) and isinstance(d.get("fetched_at"), (int, float))
+            and all(isinstance(m, dict) and isinstance(m.get("id"), str) for m in d["models"]))
+
+
 def cached_fetch(source, fetch, refresh=False, now=time.time):
     """Model list for one source: fresh cache, else live fetch, else the stale copy with its age and the reason (R12)."""
     path = cache_dir() / f"models-{source}.json"
     saved = read_json(path)
-    if saved is not None and not (isinstance(saved, dict) and isinstance(saved.get("models"), list)
-                                  and isinstance(saved.get("fetched_at"), (int, float))):
+    if saved is not None and not _good_cache(saved):
         path.unlink(missing_ok=True)
         saved = None
     t = now()
@@ -128,7 +132,7 @@ def history_path():
 
 def _history():
     try:
-        lines = history_path().read_text().splitlines()
+        lines = history_path().read_text(errors="replace").splitlines()  # a damaged line is skipped, not fatal
     except FileNotFoundError:
         return []
     out = []
@@ -361,13 +365,14 @@ def key_path():
 
 def openrouter_key():
     """OPENROUTER_API_KEY wins over the saved file (R4). Never printed or logged."""
-    env = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if env:
-        return env
-    try:
-        return key_path().read_text().strip() or None
-    except OSError:
-        return None
+    key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not key:
+        try:
+            key = key_path().read_text(errors="replace").strip()
+        except OSError:
+            return None
+    # A key with spaces, line breaks or odd bytes would end up quoted inside urllib's "Invalid header" error.
+    return key if re.fullmatch(r"[\x21-\x7e]+", key) else None
 
 
 def _key_status(key):
@@ -519,6 +524,9 @@ def cmd_save_key(args):
     if not key:
         print("No key entered. Nothing saved.")
         return 1
+    if not re.fullmatch(r"[\x21-\x7e]+", key):
+        print("That does not look like a key: it has spaces, line breaks or unusual characters. Nothing saved.")
+        return 1
     status = _key_status(key)
     if status != 200:
         print("OpenRouter could not be reached. Nothing saved." if status == 0 else
@@ -606,8 +614,10 @@ def _git_root(path):
 
 
 def _git_status(root):
-    """Changed and untracked paths (porcelain -z), leaving out this skill's own .model-crew/ folder."""
+    """Changed and untracked paths (porcelain -z), minus this skill's own .model-crew/ folder; None if git fails."""
     r = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "-z", "-uall"], capture_output=True)
+    if r.returncode:
+        return None
     out, skip = [], False
     for item in r.stdout.decode("utf-8", "replace").split("\0"):
         if skip:
@@ -629,7 +639,7 @@ def _digest(path):
 
 
 def _dirty(root):
-    return {p: _digest(root / p) for p in _git_status(root)}
+    return {p: _digest(root / p) for p in _git_status(root) or ()}
 
 
 def _changed(before, after):
@@ -656,10 +666,12 @@ def _bad_path(root, f):
     p = Path(f)
     if p.is_absolute() or ".." in p.parts or not p.parts:
         return "must be a path inside the project, like src/app.js"
-    if p.parts[0] in (".git", ".model-crew"):
-        return "is a tool folder, not a project file"
-    if not (root / p).resolve().is_relative_to(root):
+    real = (root / p).resolve()
+    if not real.is_relative_to(root):
         return "points outside the project (through a link)"
+    if p.parts[0] in (".git", ".model-crew") or real.relative_to(root).parts[:1] in ((".git",), (".model-crew",)):
+        return "is a tool folder, not a project file"
+    # ponytail: links inside an owned folder are not followed here; this check routes work, it is not a sandbox.
     return None
 
 
@@ -678,7 +690,7 @@ def _check_model(mid, known_ids, installed_routes):
     return None
 
 
-def load_plan(path, known_ids, installed_routes, project):
+def load_plan(path, known_ids, installed_routes, project, free_ids=None):
     """Check the whole plan; any error refuses all of it (R16). Returns (plan, errors)."""
     try:
         plan = json.loads(Path(path).read_text())
@@ -697,6 +709,7 @@ def load_plan(path, known_ids, installed_routes, project):
     t = plan.setdefault("time_limit_min", PART_LIMIT_MIN)
     if not isinstance(t, (int, float)) or isinstance(t, bool) or t <= 0:
         errors.append('"time_limit_min" must be a number above 0')
+    cheapest = free_ids is not None and isinstance(plan.get("brief"), dict) and plan["brief"].get("mode") == "cheapest"
     stages = plan.get("stages")
     if not isinstance(stages, list) or not stages:
         errors.append('"stages" must be a non-empty list of stages')
@@ -728,6 +741,10 @@ def load_plan(path, known_ids, installed_routes, project):
                     errors.append(f"{pid}: fallback {err}")
                 elif ROUTES[part["fallback"].split(":", 1)[0]]["edits"] == text_only:
                     errors.append(f"{pid}: the fallback must be the same kind as the model (file-editing or text-only)")
+            if cheapest:
+                paid = [m for m in (part["model"], part.get("fallback")) if isinstance(m, str) and m not in free_ids]
+                if paid:
+                    errors.append(f"{pid}: {paid[0]} is not free, but the mode is cheapest (free models only)")
             files = part.get("files")
             if not isinstance(files, list) or not all(isinstance(f, str) and f for f in files) \
                     or (not files and not text_only):
@@ -749,7 +766,9 @@ def load_plan(path, known_ids, installed_routes, project):
                       "run git init and make a first commit")
     else:
         dirty = _git_status(root)
-        if dirty:
+        if dirty is None:
+            errors.append("git status failed here, so uncommitted work could not be checked; run git status to see why")
+        elif dirty:
             errors.append(f"uncommitted changes in {len(dirty)} file(s), for example {dirty[0]}; commit a checkpoint "
                           "first so every worker change can be undone")
     return plan, errors
@@ -833,7 +852,7 @@ class _Run:
         self.dir = base / run_id
         self.dir.mkdir(parents=True)
         self.lock = threading.RLock()  # re-entrant: the Ctrl-C handler runs on the main thread, which may hold it
-        self.procs = {}
+        self.procs, self.stopping = {}, False
         self.status = {"run": run_id, "state": "running", "plan": str(plan_path), "started": int(time.time()),
                        "stages": [], "pids": {}}
 
@@ -846,22 +865,27 @@ class _Run:
         env = dict(os.environ, NO_COLOR="1")
         env.pop("CLAUDECODE", None)  # lets a claude worker start from inside a Claude Code session
         with open(log_path, "wb") as log:
-            try:
-                p = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-                                     start_new_session=True, env=env)
-            except OSError as e:
-                log.write(f"could not start {argv[0]}: {e}\n".encode())
-                return 127, False
-            with self.lock:
+            with self.lock:  # start and register in one step, so stop_all never misses a worker
+                if self.stopping:
+                    return 130, False
+                try:
+                    p = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=log,
+                                         stderr=subprocess.STDOUT, start_new_session=True, env=env)
+                except OSError as e:
+                    log.write(f"could not start {argv[0]}: {e}\n".encode())
+                    return 127, False
                 self.procs[key] = p
                 self.status["pids"][key] = {"pid": p.pid, "binary": Path(argv[0]).name}
-            self.save()
             try:
+                self.save()
                 return p.wait(timeout=limit_s), False
             except subprocess.TimeoutExpired:
                 _kill_group(p.pid, p)
                 p.wait()
                 return -9, True
+            except BaseException:  # e.g. the status file could not be written: never leave the worker behind
+                _kill_group(p.pid, p, grace=1.0)
+                raise
             finally:
                 with self.lock:
                     self.procs.pop(key, None)
@@ -869,6 +893,7 @@ class _Run:
 
     def stop_all(self):
         with self.lock:
+            self.stopping = True
             procs = list(self.procs.values())
         for p in procs:
             _kill_group(p.pid, p, grace=1.0)
@@ -889,29 +914,37 @@ def run_part(part, brief, project, run, limit_s, slots):
             code, timed_out = run.spawn(part["id"], argv, project, log, limit_s)
             secs = time.monotonic() - t0
         changed = code == 0 if text_only else _snapshot(project, part["files"]) != before
-        result = classify(code, timed_out, changed, _tail(log))
+        tail = _tail(log)
+        result = classify(code, timed_out, changed, tail)
         history_add(model, result, secs)
         if result != "rate-limited":
             break
+    # Files changed and the tool said it finished, so `done` stands; but a limit message may mean it stopped early.
+    # ponytail: not retried, because a part that builds a rate limiter prints the same words.
+    check = result == "done" and bool(RATE_RE.search(tail))
     return {"id": part["id"], "model": model, "result": result, "seconds": round(secs),
-            "log": os.path.relpath(log, project), "fallback_used": attempt > 0}
+            "log": os.path.relpath(log, project), "fallback_used": attempt > 0, "check": check}
 
 
 def _take_lock(lock):
-    """Returns None when the lock is ours, else the pid holding it. A lock left by a dead process is removed (R23)."""
-    for _ in range(3):
-        try:
-            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-        except FileExistsError:
-            pid = _read_pid(lock)
-            if pid and _alive(pid):
-                return pid
-            lock.unlink(missing_ok=True)
-            continue
-        with os.fdopen(fd, "w") as f:
-            f.write(str(os.getpid()))
-        return None
-    return _read_pid(lock) or -1
+    """Returns None when the lock is ours, else the pid holding it. A lock left by a dead process is removed (R23).
+    The pid is written to a private file first and hard-linked into place, so the lock is never seen empty."""
+    mine = lock.with_name(f"{lock.name}.{os.getpid()}")
+    _write_atomic(mine, str(os.getpid()))
+    try:
+        for _ in range(3):
+            try:
+                os.link(mine, lock)
+                return None
+            except FileExistsError:
+                pid = _read_pid(lock)
+                if pid and _alive(pid):
+                    return pid
+                # ponytail: two runs starting in the same instant over a stale lock can both remove it; rare enough.
+                lock.unlink(missing_ok=True)
+        return _read_pid(lock) or -1
+    finally:
+        mine.unlink(missing_ok=True)
 
 
 def _read_pid(path):
@@ -925,6 +958,11 @@ def run_plan(plan_path, project, known_ids, installed_routes, max_parallel=None,
     """Validate, then run stages in order and parts in parallel. Exit 0 all done, 1 some not done, 2 refused (R25)."""
     project = Path(project).resolve()
     mc = project / ".model-crew"
+    links = [p.name for p in (mc, mc / ".gitignore", mc / "runs", mc / "run.lock") if p.is_symlink()]
+    if links:
+        print(f"Refused: {', '.join(links)} in .model-crew is a link, so run files could land outside this project. "
+              "Delete the link and run again.")
+        return 2
     mc.mkdir(exist_ok=True)
     if not (mc / ".gitignore").exists():
         (mc / ".gitignore").write_text("*\n")  # run files never get committed (R24)
@@ -935,7 +973,7 @@ def run_plan(plan_path, project, known_ids, installed_routes, max_parallel=None,
               "or stop it with Ctrl-C in its window.")
         return 2
     try:
-        plan, errors = load_plan(plan_path, known_ids, installed_routes, project)
+        plan, errors = load_plan(plan_path, known_ids, installed_routes, project, set(free_ids))
         if errors:
             print("Plan refused, nothing ran:")
             print("\n".join(f"- {e}" for e in errors))
@@ -998,7 +1036,9 @@ def _summary(run, total, stopped_at, project):
         lines.append(f"stage {s['stage']}:")
         for p in s["parts"]:
             note = " (on its fallback)" if p["fallback_used"] else ""
-            log = "" if p["result"] == "done" else f"  log: {p['log']}"
+            if p.get("check"):
+                note += " (its log mentions a usage limit: check it is complete)"
+            log = "" if p["result"] == "done" and not p.get("check") else f"  log: {p['log']}"
             lines.append(f"  {p['result']:<12} {p['id']:<16} {p['model']}{note}  {p['seconds']}s{log}")
         if s["unexpected"]:
             more = len(s["unexpected"]) - 8
@@ -1123,15 +1163,14 @@ def _d5(ctx):
 def _d6(ctx):
     deleted = 0
     for p in cache_dir().glob("models-*.json"):
-        d = read_json(p)
-        if d is None or not isinstance(d, dict) or not isinstance(d.get("models"), list):
+        if not _good_cache(read_json(p)):
             p.unlink(missing_ok=True)
             deleted += 1
     fixed = [f"deleted {deleted} damaged model list(s)"] if deleted else []
     hp = history_path()
     if hp.exists():
         good = _history()
-        if len(good) != len(hp.read_text().splitlines()):
+        if len(good) != len(hp.read_text(errors="replace").splitlines()):
             with _history_lock:
                 _write_atomic(hp, "".join(json.dumps(r) + "\n" for r in good))
             fixed.append("dropped damaged lines from history.jsonl")
@@ -1170,9 +1209,9 @@ def _d9(ctx):
         if same:
             cfg["favourites"][role] = same[0]["id"]
             fixed.append(f"favourite {role}: {mid} is gone, now {same[0]['id']}")
-        else:
-            del cfg["favourites"][role]
-            problems.append(f"favourite {role}: {mid} is gone and {route} has no models now; pick a new one")
+        else:  # kept: the tool may be logged out or offline for now
+            problems.append(f"favourite {role}: {mid} is not available now and {route} lists no models; run setup, "
+                            "or pick a new one")
     if fixed or problems:
         save_config(cfg)
     return not problems, "; ".join(fixed) or None, "; ".join(problems) or None
@@ -1199,6 +1238,13 @@ def _d10(ctx):
                          "to ROUTES in crew.py, apply it only after the user says yes, then run doctor again.")
 
 
+def _session_leader(pid):
+    try:
+        return os.getsid(pid) == pid
+    except OSError:
+        return False
+
+
 def _command_of(pid):
     r = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True)
     return r.stdout.strip()
@@ -1221,8 +1267,9 @@ def _d11(ctx):
         killed = 0
         for entry in (st.get("pids") or {}).values():
             pid, binary = entry.get("pid"), entry.get("binary") or ""
-            # Only pids this run recorded, and only if that pid still runs the same tool (pids get reused).
-            if isinstance(pid, int) and _alive(pid) and binary and binary in _command_of(pid):
+            # Only pids this run recorded, only if that pid still runs the same tool, and only if it still leads its
+            # own session as every worker does (pids get reused; a reused one is almost never a session leader).
+            if isinstance(pid, int) and _alive(pid) and _session_leader(pid) and binary and binary in _command_of(pid):
                 _kill_group(pid)
                 killed += 1
         st["state"], st["pids"] = "interrupted", {}
@@ -1324,9 +1371,9 @@ def test_cache_fresh_is_used_without_fetch(tmp):
 
 
 def test_cache_stale_refetches(tmp):
-    cached_fetch("s", lambda: [1], now=lambda: 1000)
-    models, info = cached_fetch("s", lambda: [2], now=lambda: 1000 + FRESH_S + 1)
-    assert models == [2] and info["live"]
+    cached_fetch("s", lambda: [{"id": "1"}], now=lambda: 1000)
+    models, info = cached_fetch("s", lambda: [{"id": "2"}], now=lambda: 1000 + FRESH_S + 1)
+    assert models == [{"id": "2"}] and info["live"]
 
 
 def _offline():
@@ -1334,9 +1381,9 @@ def _offline():
 
 
 def test_cache_falls_back_on_fetch_error_with_age(tmp):
-    cached_fetch("s", lambda: [1], now=lambda: 1000)
+    cached_fetch("s", lambda: [{"id": "1"}], now=lambda: 1000)
     models, info = cached_fetch("s", _offline, now=lambda: 1000 + 7200)
-    assert models == [1] and info["age_s"] == 7200 and "no network" in info["error"]
+    assert models == [{"id": "1"}] and info["age_s"] == 7200 and "no network" in info["error"]
     assert _source_line(info) == "s: saved list from 2 h ago; live fetch failed: OSError: no network"
 
 
@@ -1348,8 +1395,8 @@ def test_cache_missing_and_offline_reports_unavailable(tmp):
 def test_damaged_cache_is_deleted(tmp):
     p = cache_dir() / "models-s.json"
     p.write_text("{half a file")
-    models, _ = cached_fetch("s", lambda: [3], now=lambda: 5)
-    assert models == [3] and read_json(p)["models"] == [3]
+    models, _ = cached_fetch("s", lambda: [{"id": "3"}], now=lambda: 5)
+    assert models == [{"id": "3"}] and read_json(p)["models"] == [{"id": "3"}]
     p.write_text("garbage")
     assert read_json(p) is None and not p.exists()
 
@@ -1497,6 +1544,7 @@ elif kind == "copy":
 elif kind == "echo": open(arg, "w").write(prompt)
 elif kind == "stray": open(arg, "a").write("x\n"); open("stray.txt", "w").write("x")
 elif kind == "ratelimit": print("Error: 429 Too Many Requests"); sys.exit(1)
+elif kind == "limitdone": open(arg, "w").write("half"); print("Error: 429 rate limit reached")
 elif kind == "fail": sys.exit(3)
 elif kind == "stdin": sys.stdin.read(); open(arg, "w").write("ok")
 elif kind == "big": sys.stdout.write("y" * 5_000_000); open(arg, "w").write("ok")
@@ -1801,6 +1849,115 @@ def test_quick_doctor_calls_no_tools_or_network(tmp):
 
 
 # ── main ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+# Review fixes (2026-10-05)
+
+def test_atomic_write_is_owner_only(tmp):
+    p = tmp / "k"
+    write_json_atomic(p, {"a": 1})
+    assert p.stat().st_mode & 0o777 == 0o600
+
+
+def test_cache_with_damaged_records_is_deleted(tmp):
+    p = cache_dir() / "models-s.json"
+    write_json_atomic(p, {"fetched_at": 1, "models": [None]})
+    models, _ = cached_fetch("s", _offline, now=lambda: 2)
+    assert models == [] and not p.exists()
+
+
+def test_history_with_bad_bytes_keeps_good_lines(tmp):
+    history_add("m:a", "done", 1)
+    with open(history_path(), "ab") as f:
+        f.write(b"\xff\xfe broken\n")
+    assert history_stats("m:a") == (1, 1)
+
+
+def test_key_with_line_break_is_never_used(tmp):
+    os.environ["OPENROUTER_API_KEY"] = "sk-or-v1-abc\nX-Other: 1"
+    assert openrouter_key() is None
+    os.environ["OPENROUTER_API_KEY"] = " sk-or-v1-abc "
+    assert openrouter_key() == "sk-or-v1-abc"
+
+
+def test_plan_refuses_link_into_git_folder(tmp):
+    proj = _git_repo(tmp)
+    (proj / "src").symlink_to(proj / ".git")
+    subprocess.run(["git", "-C", str(proj), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(proj), "-c", "user.email=t@e", "-c", "user.name=t", "-c", "commit.gpgsign=false",
+                    "-c", "core.hooksPath=/dev/null", "commit", "-qm", "link"], check=True)
+    assert "tool folder" in _refusals(tmp, [[_part("a", "writes=src/config", ["src/config"])]], proj=proj)
+
+
+def test_cheapest_plan_refuses_paid_model(tmp):
+    _fake_route()
+    proj = _git_repo(tmp)
+    path, ids = _write_plan(proj, [[_part("a", "writes=a.txt", ["a.txt"])]], brief={"task": "t", "mode": "cheapest"})
+    assert "not free" in " ".join(load_plan(path, ids, {"fake"}, proj, free_ids=set())[1])
+    assert not load_plan(path, ids, {"fake"}, proj, free_ids=ids)[1]
+
+
+def test_failed_git_status_refuses_plan(tmp):
+    _patch(M, "_git_status", lambda root: None)
+    assert "git status failed" in _refusals(tmp, [[_part("a", "writes=a.txt", ["a.txt"])]])
+
+
+def test_linked_model_crew_folder_refused(tmp):
+    _fake_route()
+    proj, elsewhere = _git_repo(tmp), tmp / "elsewhere"
+    elsewhere.mkdir()
+    (proj / ".model-crew").symlink_to(elsewhere)
+    plan = tmp / "plan.json"
+    plan.write_text(json.dumps({"brief": {"task": "t"}, "stages": [[_part("a", "writes=a.txt", ["a.txt"])]]}))
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = run_plan(plan, proj, {"fake:writes=a.txt"}, {"fake"})
+    assert code == 2 and "is a link" in out.getvalue() and not list(elsewhere.iterdir())
+
+
+def test_lock_holds_pid_and_leaves_no_private_file(tmp):
+    lock = tmp / "run.lock"
+    assert _take_lock(lock) is None and lock.read_text() == str(os.getpid())
+    assert _take_lock(lock) == os.getpid() and [f.name for f in tmp.iterdir() if f.name.startswith("run.")] == \
+        ["run.lock"]
+
+
+def test_no_worker_starts_after_stop(tmp):
+    proj = _git_repo(tmp)
+    run = _Run(proj, "plan.json")
+    run.stop_all()
+    marker = tmp / "started"
+    code, timed_out = run.spawn("a", [sys.executable, "-c", f"open({str(marker)!r}, 'w')"], proj, tmp / "a.log", 5)
+    assert (code, timed_out) == (130, False) and not marker.exists()
+
+
+def test_done_with_limit_message_is_flagged_for_checking(tmp):
+    _fake_route()
+    proj = _git_repo(tmp)
+    code, st, out = _run(proj, [[_part("a", "limitdone=a.txt", ["a.txt"])]])
+    p = st["stages"][0]["parts"][0]
+    assert p["result"] == "done" and p["check"] and "check it is complete" in out and p["log"] in out
+
+
+def test_doctor_keeps_favourite_when_its_tool_is_away(tmp):
+    cfg = load_config()
+    cfg["favourites"] = {"build": "codex:gpt-x"}
+    save_config(cfg)
+    _patch(M, "detect", lambda save=False: [])
+    _patch(M, "list_models", lambda rows, refresh=False: ([], []))
+    r = doctor(quick=False, project=tmp, only={"D9"})[0]
+    assert not r["ok"] and load_config()["favourites"] == {"build": "codex:gpt-x"}
+
+
+def test_session_leader_tells_workers_from_reused_pids(tmp):
+    own = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(5)"], start_new_session=True)
+    plain = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(5)"])
+    try:
+        assert _session_leader(own.pid) and not _session_leader(plain.pid)
+    finally:
+        for c in (own, plain):
+            c.kill()
+            c.wait()
+
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="crew.py", description=__doc__.splitlines()[0])

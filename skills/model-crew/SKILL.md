@@ -178,7 +178,8 @@ undone. Before running, check `git status`:
 
 ### 6. Run
 
-Run `python3 $CREW run` from the project folder. It can take up to `time_limit_min` per stage: run it in the
+Run `python3 $CREW run` from the project folder. `time_limit_min` is per attempt, so a stage can take longer: parts
+wait when there are more parts than workers, and a rate-limited part tries again on its fallback. Run it in the
 background if your host allows, and tell the user what is running. Never start a second run in the same folder; the
 script refuses one anyway.
 
@@ -186,7 +187,7 @@ Show the summary table in your reply. Each part ends as one of:
 
 | Result | Meaning | What you do |
 |---|---|---|
-| `done` | Finished and changed its files | Check it (step 7) |
+| `done` | Finished and changed its files | Check it (step 7). If it says `its log mentions a usage limit`, it may have stopped early: read its log and its files first |
 | `no-changes` | Ended cleanly but changed nothing | Read the end of its log, then retry (step 8) |
 | `stuck` | Passed its time limit and was stopped | Split the part smaller, or raise `time_limit_min` |
 | `rate-limited` | Hit a usage limit, also on its fallback | Retry on a different free model, or later |
